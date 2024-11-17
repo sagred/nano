@@ -1,38 +1,52 @@
-// src/services/ai/index.ts
-interface AISession {
-    prompt: (input: string) => Promise<string>;
+export interface AIMessage {
+    content: string;
+    role: 'user' | 'assistant';
+    timestamp: number;
   }
   
   export class AIService {
-    private session: AISession | null = null;
+    private session: any = null;
   
-    async initialize(): Promise<void> {
+    async initialize() {
       if (!this.session) {
         try {
-          const capabilities = await chrome.ai.languageModel.capabilities();
+          if (!window.ai) {
+            throw new Error('AI service not available');
+          }
+          const capabilities = await window.ai.languageModel.capabilities();
           if (capabilities.available === "readily") {
-            this.session = await chrome.ai.languageModel.create({
-              systemPrompt: "You are a helpful assistant that creates concise summaries."
+            this.session = await window.ai.languageModel.create({
+              systemPrompt: "You are a helpful assistant that can help users find and manage their bookmarks. When showing bookmarks, present them in a clear, numbered list format."
             });
           }
         } catch (error) {
-          console.error('Error initializing AI service:', error);
+          console.error('Error initializing AI:', error);
           throw error;
         }
       }
     }
   
-    async generateSummary(content: string): Promise<string> {
+    async* streamMessage(message: string): AsyncGenerator<string> {
       await this.initialize();
       if (!this.session) {
         throw new Error('AI service not available');
       }
-  
       try {
-        const prompt = `Please provide a concise summary of the following content in 2-3 sentences: ${content.slice(0, 1000)}`;
-        return await this.session.prompt(prompt);
+        const stream = await this.session.promptStreaming(message);
+        let previousContent = '';
+        
+        for await (const chunk of stream) {
+          // Get only the new content by removing the previous content
+          const newContent = chunk.replace(previousContent, '');
+          previousContent = chunk;
+          
+          // Only yield if there's new content
+          if (newContent.trim()) {
+            yield newContent;
+          }
+        }
       } catch (error) {
-        console.error('Error generating summary:', error);
+        console.error('Error streaming AI response:', error);
         throw error;
       }
     }
