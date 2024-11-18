@@ -60,31 +60,46 @@ export class KnowledgeDB extends Dexie {
       .toArray();
   }
 
-  async searchPagesBySimilarity(queryEmbedding: Float32Array): Promise<PageContent[]> {
+  async searchPagesBySimilarity(queryEmbedding: Float32Array, searchQuery: string): Promise<PageContent[]> {
     const allPages = await this.pages.toArray();
     console.log('Total pages in DB:', allPages.length);
     
-    // Calculate similarity scores
+    const queryTerms = searchQuery.toLowerCase().split(' ');
+    
+    // Calculate similarity scores and keyword matches
     const pagesWithScores = allPages.map(page => {
-      const score = page.embedding ? 
+      // Semantic similarity score
+      const semanticScore = page.embedding ? 
         embeddingService.calculateSimilarity(queryEmbedding, page.embedding) : 0;
-      console.log(`Score for ${page.title}:`, score);
+      
+      // Keyword match score
+      const titleAndContent = (page.title + ' ' + page.content).toLowerCase();
+      const keywordScore = queryTerms.reduce((score, term) => {
+        return score + (titleAndContent.includes(term) ? 0.5 : 0);
+      }, 0);
+      
+      // Combined score (weighted average)
+      const combinedScore = (semanticScore * 0.6) + (keywordScore * 0.4);
+      
+      console.log(`Scores for ${page.title}:`, {
+        semantic: semanticScore,
+        keyword: keywordScore,
+        combined: combinedScore
+      });
+
       return {
         ...page,
-        relevanceScore: score
+        relevanceScore: combinedScore
       };
     });
 
-    // Sort by relevance score and filter with a lower threshold
+    // Sort by combined score
     const results = pagesWithScores
       .sort((a, b) => (b.relevanceScore || 0) - (a.relevanceScore || 0))
-      .filter(page => (page.relevanceScore || 0) > 0.1); // Lower threshold to 0.1
+      .slice(0, 10); // Top 10 results
     
-    // Limit to top 10 results
-    const topResults = results.slice(0, 10);
-    
-    console.log('Filtered results:', topResults);
-    return topResults;
+    console.log('Filtered results:', results);
+    return results;
   }
 }
 

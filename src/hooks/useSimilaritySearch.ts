@@ -18,8 +18,8 @@ export const useSimilaritySearch = () => {
     
     try {
       const queryEmbedding = await embeddingService.generateEmbedding(query);
-      const similarPages = await db.searchPagesBySimilarity(queryEmbedding);
-      console.log('Found similar pages:', similarPages); // Debug log
+      const similarPages = await db.searchPagesBySimilarity(queryEmbedding, query);
+      console.log('Found similar pages:', similarPages);
       setResults(similarPages);
     } catch (err) {
       setError('Failed to perform similarity search');
