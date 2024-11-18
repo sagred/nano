@@ -34,7 +34,29 @@ export const MessageList: React.FC<MessageListProps> = ({ messages, isLoading })
             }`}
           >
             <div className="prose prose-invert prose-sm max-w-none">
-              <ReactMarkdown>{message.content}</ReactMarkdown>
+              <ReactMarkdown
+                components={{
+                  a: ({ node, ...props }) => (
+                    <a
+                      {...props}
+                      className="text-indigo-400 hover:text-indigo-300 underline"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    />
+                  ),
+                  li: ({ node, ...props }) => (
+                    <li {...props} className="text-slate-100 my-1" />
+                  ),
+                  h2: ({ node, ...props }) => (
+                    <h2 {...props} className="text-indigo-300 font-semibold text-lg mt-4 mb-2" />
+                  ),
+                  h3: ({ node, ...props }) => (
+                    <h3 {...props} className="text-indigo-200 font-medium text-base mt-3 mb-1" />
+                  )
+                }}
+              >
+                {message.content}
+              </ReactMarkdown>
             </div>
             {isLoading && index === messages.length - 1 && message.role === 'assistant' && (
               <span className="inline-flex ml-1">

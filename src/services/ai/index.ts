@@ -16,7 +16,14 @@ export interface AIMessage {
           const capabilities = await window.ai.languageModel.capabilities();
           if (capabilities.available === "readily") {
             this.session = await window.ai.languageModel.create({
-              systemPrompt: "You are a helpful assistant that can help users find and manage their bookmarks. When showing bookmarks, present them in a clear, numbered list format."
+              systemPrompt: `You are a bookmark organization assistant. When organizing bookmarks:
+              1. Create clear, logical categories using ## headers (e.g., ## Development, ## AI & Machine Learning)
+              2. Keep categories focused and specific
+              3. Format each bookmark as a markdown link: - [Title](URL)
+              4. Group similar items together
+              5. Keep the response clean and well-formatted
+              6. Limit to 5-7 main categories
+              7. Sort items within categories alphabetically`
             });
           }
         } catch (error) {

@@ -1,17 +1,82 @@
 // src/hooks/useChat.ts
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { aiService, AIMessage } from '@/services/ai';
+import { bookmarkService, Bookmark } from '@/services/bookmarks';
 
 export const useChat = () => {
   const [messages, setMessages] = useState<AIMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
+
+  useEffect(() => {
+    const loadBookmarks = async () => {
+      setIsLoading(true);
+      try {
+        const results = await bookmarkService.getBookmarks();
+        setBookmarks(results.filter(b => b.title && b.url));
+        
+        const aiMessage: AIMessage = {
+          content: "Here are your bookmarks. Click on one to learn more about it:",
+          role: 'assistant',
+          timestamp: Date.now()
+        };
+        
+        setMessages([aiMessage]);
+      } catch (err) {
+        setError('Failed to load bookmarks');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadBookmarks();
+  }, []);
+
+  const analyzeBookmark = async (bookmark: Bookmark) => {
+    setIsLoading(true);
+    
+    const userMessage: AIMessage = {
+      content: `Tell me about: ${bookmark.title}`,
+      role: 'user',
+      timestamp: Date.now()
+    };
+    
+    setMessages(prev => [...prev, userMessage]);
+
+    try {
+      const stream = aiService.streamMessage(
+        `Analyze this bookmark and provide useful information about it: ${bookmark.title} (${bookmark.url})`
+      );
+      
+      const aiMessage: AIMessage = {
+        content: '',
+        role: 'assistant',
+        timestamp: Date.now()
+      };
+      
+      setMessages(prev => [...prev, aiMessage]);
+      
+      let fullResponse = '';
+      for await (const chunk of stream) {
+        fullResponse += chunk;
+        setMessages(prev => prev.map((msg, index) => 
+          index === prev.length - 1 
+            ? { ...msg, content: fullResponse }
+            : msg
+        ));
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to analyze bookmark');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const sendMessage = async (content: string) => {
     setIsLoading(true);
     setError(null);
 
-    // Add user message
     const userMessage: AIMessage = {
       content,
       role: 'user',
@@ -20,24 +85,19 @@ export const useChat = () => {
     
     setMessages(prev => [...prev, userMessage]);
 
-    // Create AI message with empty content
-    const aiMessage: AIMessage = {
-      content: '',
-      role: 'assistant',
-      timestamp: Date.now()
-    };
-    
-    setMessages(prev => [...prev, aiMessage]);
-
     try {
       const stream = aiService.streamMessage(content);
-      let fullResponse = '';
+      const aiMessage: AIMessage = {
+        content: '',
+        role: 'assistant',
+        timestamp: Date.now()
+      };
       
+      setMessages(prev => [...prev, aiMessage]);
+      
+      let fullResponse = '';
       for await (const chunk of stream) {
-        // Add new chunk to full response
         fullResponse += chunk;
-        
-        // Update the AI message with the current complete response
         setMessages(prev => prev.map((msg, index) => 
           index === prev.length - 1 
             ? { ...msg, content: fullResponse }
@@ -56,6 +116,8 @@ export const useChat = () => {
     messages,
     isLoading,
     error,
+    bookmarks,
+    analyzeBookmark,
     sendMessage
   };
 };
