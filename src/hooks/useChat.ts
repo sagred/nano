@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { aiService, AIMessage } from '@/services/ai';
 import { bookmarkService, Bookmark } from '@/services/bookmarks';
+import { fetchPageContent } from '@/utils/fetchContent';
 
 export const useChat = () => {
   const [messages, setMessages] = useState<AIMessage[]>([]);
@@ -45,9 +46,24 @@ export const useChat = () => {
     setMessages(prev => [...prev, userMessage]);
 
     try {
-      const stream = aiService.streamMessage(
-        `Analyze this bookmark and provide useful information about it: ${bookmark.title} (${bookmark.url})`
-      );
+      const pageContent = await fetchPageContent(bookmark.url);
+      
+      const prompt = `
+        Analyze this bookmark and provide useful information about it.
+        
+        Title: ${bookmark.title}
+        URL: ${bookmark.url}
+        
+        Page Content:
+        ${pageContent}
+        
+        Please provide:
+        1. A brief summary of what this page is about
+        2. Key points or main topics covered
+        3. Why this might be useful or interesting
+      `;
+
+      const stream = aiService.streamMessage(prompt);
       
       const aiMessage: AIMessage = {
         content: '',

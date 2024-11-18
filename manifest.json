@@ -9,7 +9,8 @@
       "bookmarks",
       "storage",
       "unlimitedStorage",
-      "scripting"
+      "scripting",
+      "<all_urls>"
     ],
     "host_permissions": [
       "<all_urls>"
