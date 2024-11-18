@@ -1,5 +1,6 @@
 // src/services/storage/database.ts
 import Dexie, { Table } from 'dexie';
+import { embeddingService } from '../embeddings/index';
 
 // Define types
 export interface PageContent {
@@ -7,9 +8,11 @@ export interface PageContent {
   url: string;
   title: string;
   content: string;
+  embedding?: Float32Array;
   timestamp: number;
   isBookmark: boolean;
   summary?: string;
+  relevanceScore?: number;
 }
 
 export class KnowledgeDB extends Dexie {
@@ -18,7 +21,7 @@ export class KnowledgeDB extends Dexie {
   constructor() {
     super('KnowledgeDB');
     this.version(1).stores({
-      pages: '++id, url, title, timestamp, isBookmark'
+      pages: '++id, url, title, timestamp, isBookmark, *embedding'
     });
   }
 
@@ -55,6 +58,33 @@ export class KnowledgeDB extends Dexie {
       .reverse()
       .limit(limit)
       .toArray();
+  }
+
+  async searchPagesBySimilarity(queryEmbedding: Float32Array): Promise<PageContent[]> {
+    const allPages = await this.pages.toArray();
+    console.log('Total pages in DB:', allPages.length);
+    
+    // Calculate similarity scores
+    const pagesWithScores = allPages.map(page => {
+      const score = page.embedding ? 
+        embeddingService.calculateSimilarity(queryEmbedding, page.embedding) : 0;
+      console.log(`Score for ${page.title}:`, score);
+      return {
+        ...page,
+        relevanceScore: score
+      };
+    });
+
+    // Sort by relevance score and filter with a lower threshold
+    const results = pagesWithScores
+      .sort((a, b) => (b.relevanceScore || 0) - (a.relevanceScore || 0))
+      .filter(page => (page.relevanceScore || 0) > 0.1); // Lower threshold to 0.1
+    
+    // Limit to top 10 results
+    const topResults = results.slice(0, 10);
+    
+    console.log('Filtered results:', topResults);
+    return topResults;
   }
 }
 

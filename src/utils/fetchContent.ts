@@ -1,23 +1,29 @@
-export async function fetchPageContent(url: string): Promise<string> {
+import { embeddingService } from '@/services/embeddings';
+
+export async function fetchPageContent(url: string): Promise<{content: string, embedding: Float32Array}> {
   try {
     const response = await fetch(url);
     const html = await response.text();
     
-    // Create a DOM parser
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
     
-    // Get main content (prioritize main content areas)
     const mainContent = doc.querySelector('main, article, .content, #content');
     const content = mainContent ? mainContent.textContent : doc.body.textContent;
     
-    // Clean and truncate the content
-    return content
+    const cleanContent = content
       ?.replace(/\s+/g, ' ')
       .trim()
       .slice(0, 2000) || 'Could not fetch page content';
+
+    const embedding = await embeddingService.generateEmbedding(cleanContent);
+    
+    return {
+      content: cleanContent,
+      embedding
+    };
   } catch (error) {
     console.error('Error fetching page content:', error);
-    return 'Failed to fetch page content';
+    throw error;
   }
 } 
