@@ -92,7 +92,20 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(({
 
   useEffect(() => {
     if (shouldAutoScroll && messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+      const container = responseContainerRef.current;
+      if (container) {
+        // Add a small delay to ensure the DOM has updated
+        setTimeout(() => {
+          // Calculate the total height needed to show the input
+          const chatInput = container.querySelector('[data-chat-input]');
+          const inputHeight = chatInput ? chatInput.getBoundingClientRect().height : 0;
+          
+          container.scrollTo({
+            top: container.scrollHeight + inputHeight,
+            behavior: 'smooth'
+          });
+        }, 100);
+      }
     }
   }, [messages, shouldAutoScroll]);
 
@@ -371,65 +384,68 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(({
                     onCopy={message.role === 'assistant' ? () => navigator.clipboard.writeText(message.content) : undefined}
                   />
                 ))}
+
+                {showChat && !isLoading && (
+                  <div 
+                    data-chat-input
+                    style={{
+                      padding: '16px 32px',
+                      borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+                      background: 'transparent'
+                    }}
+                  >
+                    <div style={{
+                      display: 'flex',
+                      gap: '8px'
+                    }}>
+                      <input
+                        type="text"
+                        value={chatMessage}
+                        onChange={(e) => setChatMessage(e.target.value)}
+                        onKeyDown={(e) => {
+                          e.stopPropagation();
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleChat();
+                          }
+                        }}
+                        placeholder="Ask a follow-up question..."
+                        style={{
+                          flex: 1,
+                          padding: '8px 12px',
+                          background: 'var(--primary)',
+                          border: 'none',
+                          borderRadius: '6px',
+                          color: 'var(--primary-foreground)',
+                          fontSize: '14px',
+                          outline: 'none'
+                        }}
+                      />
+                      <button
+                        onClick={handleChat}
+                        disabled={isLoading}
+                        style={{
+                          padding: '8px',
+                          background: 'var(--primary)',
+                          border: 'none',
+                          borderRadius: '6px',
+                          color: 'var(--primary-foreground)',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                      >
+                        <Send style={{ width: '16px', height: '16px' }} />
+                      </button>
+                    </div>
+                  </div>
+                )}
                 <div ref={messagesEndRef} />
               </div>
             )}
           </div>
         </div>
-
-        {/* Chat input - only shown after response is complete */}
-        {showChat && !isLoading && (
-          <div style={{
-            padding: '16px',
-            borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-            background: '#18181B'
-          }}>
-            <div style={{
-              display: 'flex',
-              gap: '8px'
-            }}>
-              <input
-                type="text"
-                value={chatMessage}
-                onChange={(e) => setChatMessage(e.target.value)}
-                onKeyDown={(e) => {
-                  e.stopPropagation();
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleChat();
-                  }
-                }}
-                placeholder="Ask a follow-up question..."
-                style={{
-                  flex: 1,
-                  padding: '8px 12px',
-                  background: '#27272a',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  borderRadius: '6px',
-                  color: '#f4f4f5',
-                  fontSize: '14px'
-                }}
-              />
-              <button
-                onClick={handleChat}
-                disabled={isLoading}
-                style={{
-                  padding: '8px',
-                  background: '#27272a',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  borderRadius: '6px',
-                  color: '#f4f4f5',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                <Send style={{ width: '16px', height: '16px' }} />
-              </button>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
