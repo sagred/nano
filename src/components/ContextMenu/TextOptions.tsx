@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Wand2, Check, Expand, Shrink, Sparkles, RefreshCw, PenTool, X, Loader2, Send, FileText, Copy } from "lucide-react";
 import { useTextModification } from '@/hooks/useTextModification';
 import ReactMarkdown from 'react-markdown';
@@ -27,6 +27,9 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(({
   const [currentOption, setCurrentOption] = useState<string>('improve');
   const { modifyText } = useTextModification();
   const [focusedOptionIndex, setFocusedOptionIndex] = useState<number>(-1);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+  const responseContainerRef = useRef<HTMLDivElement>(null);
 
   const options = [
     { id: 'improve', icon: <Wand2 style={{ width: '14px', height: '14px', color: '#22c55e' }} />, label: 'Improve Writing' },
@@ -72,6 +75,26 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(({
     document.addEventListener('keydown', handleKeyDown, true);
     return () => document.removeEventListener('keydown', handleKeyDown, true);
   }, [showOptions, focusedOptionIndex, options]);
+
+  useEffect(() => {
+    const container = responseContainerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      const isAtBottom = Math.abs(scrollHeight - scrollTop - clientHeight) < 50;
+      setShouldAutoScroll(isAtBottom);
+    };
+
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    if (shouldAutoScroll && messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, shouldAutoScroll]);
 
   const handleOptionSelect = async (option: string, messageIndex?: number) => {
     setCurrentOption(option);
@@ -251,12 +274,15 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(({
         </button>
 
         {/* Scrollable container for all content */}
-        <div style={{ 
-          flex: 1,
-          overflowY: 'auto',
-          display: 'flex',
-          flexDirection: 'column'
-        }}>
+        <div 
+          ref={responseContainerRef}
+          style={{ 
+            flex: 1,
+            overflowY: 'auto',
+            display: 'flex',
+            flexDirection: 'column'
+          }}
+        >
           {/* Header - stays at top */}
           <div style={{
             padding: '12px',
@@ -345,6 +371,7 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(({
                     onCopy={message.role === 'assistant' ? () => navigator.clipboard.writeText(message.content) : undefined}
                   />
                 ))}
+                <div ref={messagesEndRef} />
               </div>
             )}
           </div>
