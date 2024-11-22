@@ -1,51 +1,66 @@
 import React, { useState } from 'react';
-import { Wand2, Check, Expand, Shrink, Sparkles, RefreshCw, PenTool, X, Loader2, Send, FileText } from "lucide-react";
+import { Wand2, Check, Expand, Shrink, Sparkles, RefreshCw, PenTool, X, Loader2, Send, FileText, Copy } from "lucide-react";
 import { useTextModification } from '@/hooks/useTextModification';
 import ReactMarkdown from 'react-markdown';
+import ActionButton from './ActionButton';
 
 interface TextOptionsProps {
   selectedText: string;
   onClose: () => void;
 }
 
+interface Message {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(({
   selectedText,
   onClose
 }, ref) => {
+  const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [response, setResponse] = useState<string>('');
   const [showResponse, setShowResponse] = useState(false);
   const [showOptions, setShowOptions] = useState(true);
   const [showChat, setShowChat] = useState(false);
   const [chatMessage, setChatMessage] = useState('');
+  const [currentOption, setCurrentOption] = useState<string>('improve');
   const { modifyText } = useTextModification();
 
   const options = [
-    { id: 'improve', icon: <Wand2 className="h-4 w-4" />, label: 'Improve Writing' },
-    { id: 'grammar', icon: <Check className="h-4 w-4" />, label: 'Fix Grammar & Spelling' },
-    { id: 'longer', icon: <Expand className="h-4 w-4" />, label: 'Make Longer' },
-    { id: 'shorter', icon: <Shrink className="h-4 w-4" />, label: 'Make Shorter' },
-    { id: 'simplify', icon: <Sparkles className="h-4 w-4" />, label: 'Simplify Language' },
-    { id: 'rephrase', icon: <RefreshCw className="h-4 w-4" />, label: 'Rephrase' },
-    { id: 'continue', icon: <PenTool className="h-4 w-4" />, label: 'Continue Writing' },
-    { id: 'summarize', icon: <FileText className="h-4 w-4" />, label: 'Summarize' },
+    { id: 'improve', icon: <Wand2 style={{ width: '14px', height: '14px', color: '#22c55e' }} />, label: 'Improve Writing' },
+    { id: 'grammar', icon: <Check style={{ width: '14px', height: '14px', color: '#22c55e' }} />, label: 'Fix Grammar & Spelling' },
+    { id: 'longer', icon: <Expand style={{ width: '14px', height: '14px', color: '#22c55e' }} />, label: 'Make Longer' },
+    { id: 'shorter', icon: <Shrink style={{ width: '14px', height: '14px', color: '#22c55e' }} />, label: 'Make Shorter' },
+    { id: 'simplify', icon: <Sparkles style={{ width: '14px', height: '14px', color: '#22c55e' }} />, label: 'Simplify Language' },
+    { id: 'rephrase', icon: <RefreshCw style={{ width: '14px', height: '14px', color: '#22c55e' }} />, label: 'Rephrase' },
+    { id: 'continue', icon: <PenTool style={{ width: '14px', height: '14px', color: '#22c55e' }} />, label: 'Continue Writing' },
+    { id: 'summarize', icon: <FileText style={{ width: '14px', height: '14px', color: '#22c55e' }} />, label: 'Summarize' },
   ];
 
   const handleOptionSelect = async (option: string) => {
+    setCurrentOption(option);
     setIsLoading(true);
     setShowResponse(true);
     setShowOptions(false);
     setShowChat(false);
-    setResponse('');
+    
+   // setMessages([{ role: 'user', content: selectedText }]);
 
     try {
       const stream = await modifyText(option, selectedText);
+      setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
+      
+      let fullResponse = '';
       for await (const chunk of stream) {
-        setResponse(prev => prev + chunk);
+        fullResponse += chunk;
+        setMessages(prev => prev.map((msg, idx) => 
+          idx === prev.length - 1 ? { ...msg, content: fullResponse } : msg
+        ));
       }
       setShowChat(true);
     } catch (error) {
-      setResponse('Failed to process your request. Please try again.');
+      setMessages(prev => [...prev, { role: 'assistant', content: 'Failed to process your request. Please try again.' }]);
     } finally {
       setIsLoading(false);
     }
@@ -57,11 +72,15 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(({
     
     try {
       const stream = await modifyText('chat', chatMessage);
-      let newResponse = response + '\n\n**You:** ' + chatMessage + '\n\n**Assistant:** ';
-      setResponse(newResponse);
+      setMessages(prev => [...prev, { role: 'user', content: chatMessage }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
       
+      let fullResponse = '';
       for await (const chunk of stream) {
-        setResponse(prev => prev + chunk);
+        fullResponse += chunk;
+        setMessages(prev => prev.map((msg, idx) => 
+          idx === prev.length - 1 ? { ...msg, content: fullResponse } : msg
+        ));
       }
       setChatMessage('');
     } catch (error) {
@@ -69,6 +88,62 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(({
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const MessageBlock = ({ 
+    isUser, 
+    content, 
+    isLoading,
+    onRegenerate,
+    onCopy 
+  }: { 
+    isUser: boolean;
+    content: string;
+    isLoading?: boolean;
+    onRegenerate?: () => void;
+    onCopy?: () => void;
+  }) => {
+    return (
+      <div style={{
+        background: isUser ? 'transparent' : 'rgba(39, 39, 42, 0.3)',
+        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+        paddingLeft: '32px',
+        paddingRight: '32px',
+        paddingTop: '8px',
+        paddingBottom: '8px'
+      }}>
+        <div style={{ flex: 1 }}>
+          <div style={{
+            color: '#f4f4f5',
+            lineHeight: '1.5',
+            fontSize: '14px',
+          }}>
+            <ReactMarkdown>{content}</ReactMarkdown>
+          </div>
+          
+          {!isUser && !isLoading && onRegenerate && onCopy && (
+            <div style={{
+              display: 'flex',
+              gap: '8px',
+              marginTop: '12px'
+            }}>
+              <ActionButton
+                icon={<RefreshCw style={{ width: '14px', height: '14px' }} />}
+                activeIcon={<Loader2 style={{ width: '14px', height: '14px' }} />}
+                onClick={onRegenerate}
+                tooltip="Regenerate"
+              />
+              <ActionButton
+                icon={<Copy style={{ width: '14px', height: '14px' }} />}
+                activeIcon={<Check style={{ width: '14px', height: '14px' }} />}
+                onClick={onCopy}
+                tooltip="Copy to clipboard"
+              />
+            </div>
+          )}
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -114,14 +189,14 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(({
               </button>
             </div>
             <p style={{ color: '#71717a', fontSize: '14px', marginTop: '4px' }}>
-              Selected text: {selectedText.substring(0, 100)}...
+              {selectedText.substring(0, 100)}...
             </p>
           </div>
 
           {/* Options and Response content */}
-          <div style={{ padding: '16px', flex: 1 }}>
+          <div style={{ flex: 1 }}>
             {showOptions && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
                 {options.map((option) => (
                   <button
                     key={option.id}
@@ -156,28 +231,20 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(({
             )}
 
             {showResponse && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <div style={{
-                  color: '#f4f4f5',
-                  lineHeight: '1.5'
-                }}>
-                  <ReactMarkdown>{response}</ReactMarkdown>
-                  {isLoading && (
-                    <div style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      color: '#71717a',
-                      marginLeft: '4px'
-                    }}>
-                      <Loader2 style={{ 
-                        width: '16px', 
-                        height: '16px', 
-                        animation: 'spin 1s linear infinite' 
-                      }} />
-                    </div>
-                  )}
-                </div>
+              <div style={{ 
+                display: 'flex', 
+                flexDirection: 'column',
+              }}>
+                {messages.map((message, index) => (
+                  <MessageBlock
+                    key={index}
+                    isUser={message.role === 'user'}
+                    content={message.content}
+                    isLoading={isLoading && index === messages.length - 1 && message.role === 'assistant'}
+                    onRegenerate={message.role === 'assistant' ? () => handleOptionSelect(currentOption) : undefined}
+                    onCopy={message.role === 'assistant' ? () => navigator.clipboard.writeText(message.content) : undefined}
+                  />
+                ))}
               </div>
             )}
           </div>

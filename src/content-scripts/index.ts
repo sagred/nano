@@ -36,10 +36,27 @@ style.textContent = `
     overflow: hidden;
     display: flex;
     flex-direction: column;
-  }
+  });
   @keyframes spin {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
+  }
+  @keyframes iconPop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  .option-button:hover {
+    background: rgba(34, 197, 94, 0.1);
+    color: #22c55e;
+  }
+  .action-button:hover {
+    background: rgba(34, 197, 94, 0.1);
+    color: #22c55e;
   }
 `;
 
