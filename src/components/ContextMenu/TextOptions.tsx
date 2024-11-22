@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Wand2, Check, Expand, Shrink, Sparkles, RefreshCw, PenTool, X, Loader2, Send, FileText, Copy } from "lucide-react";
 import { useTextModification } from '@/hooks/useTextModification';
 import ReactMarkdown from 'react-markdown';
@@ -26,6 +26,7 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(({
   const [chatMessage, setChatMessage] = useState('');
   const [currentOption, setCurrentOption] = useState<string>('improve');
   const { modifyText } = useTextModification();
+  const [focusedOptionIndex, setFocusedOptionIndex] = useState<number>(-1);
 
   const options = [
     { id: 'improve', icon: <Wand2 style={{ width: '14px', height: '14px', color: '#22c55e' }} />, label: 'Improve Writing' },
@@ -37,6 +38,40 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(({
     { id: 'continue', icon: <PenTool style={{ width: '14px', height: '14px', color: '#22c55e' }} />, label: 'Continue Writing' },
     { id: 'summarize', icon: <FileText style={{ width: '14px', height: '14px', color: '#22c55e' }} />, label: 'Summarize' },
   ];
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!showOptions) return;
+
+      switch (e.key) {
+        case 'ArrowDown':
+          e.preventDefault();
+          e.stopPropagation();
+          setFocusedOptionIndex(prev => 
+            prev < options.length - 1 ? prev + 1 : prev
+          );
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          e.stopPropagation();
+          setFocusedOptionIndex(prev => 
+            prev > 0 ? prev - 1 : prev
+          );
+          break;
+        case 'Enter':
+          e.preventDefault();
+          e.stopPropagation();
+          if (focusedOptionIndex >= 0) {
+            handleOptionSelect(options[focusedOptionIndex].id);
+          }
+          break;
+      }
+    };
+
+    // Listen on the document level but check if modal is open
+    document.addEventListener('keydown', handleKeyDown, true);
+    return () => document.removeEventListener('keydown', handleKeyDown, true);
+  }, [showOptions, focusedOptionIndex, options]);
 
   const handleOptionSelect = async (option: string, messageIndex?: number) => {
     setCurrentOption(option);
@@ -250,13 +285,22 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(({
           </div>
 
           {/* Options and Response content */}
-          <div style={{ flex: 1, padding: '12px' }}>
+          <div style={{ flex: 1  }}>
             {showOptions && (
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', padding: '12px' }}>
                 {options.map((option) => (
                   <button
                     key={option.id}
                     onClick={() => handleOptionSelect(option.id)}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = '#27272a';
+                      e.currentTarget.style.color = '#f4f4f5';
+                      setFocusedOptionIndex(options.findIndex(opt => opt.id === option.id));
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'transparent';
+                      e.currentTarget.style.color = '#d4d4d8';
+                    }}
                     style={{
                       width: '100%',
                       padding: '12px',
@@ -265,21 +309,18 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(({
                       display: 'flex',
                       alignItems: 'center',
                       gap: '8px',
-                      background: 'transparent',
+                      background: focusedOptionIndex === options.findIndex(opt => opt.id === option.id) 
+                        ? '#27272a' 
+                        : 'transparent',
                       border: 'none',
-                      color: '#d4d4d8',
+                      color: focusedOptionIndex === options.findIndex(opt => opt.id === option.id)
+                        ? '#f4f4f5'
+                        : '#d4d4d8',
                       cursor: 'pointer',
                       fontSize: '14px',
                       textAlign: 'left',
-                      borderRadius: '6px'
-                    }}
-                    onMouseEnter={e => {
-                      e.currentTarget.style.background = '#27272a';
-                      e.currentTarget.style.color = '#f4f4f5';
-                    }}
-                    onMouseLeave={e => {
-                      e.currentTarget.style.background = 'transparent';
-                      e.currentTarget.style.color = '#d4d4d8';
+                      borderRadius: '6px',
+                      outline: 'none'
                     }}
                   >
                     {option.icon}
@@ -324,7 +365,13 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(({
                 type="text"
                 value={chatMessage}
                 onChange={(e) => setChatMessage(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleChat()}
+                onKeyDown={(e) => {
+                  e.stopPropagation();
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleChat();
+                  }
+                }}
                 placeholder="Ask a follow-up question..."
                 style={{
                   flex: 1,
