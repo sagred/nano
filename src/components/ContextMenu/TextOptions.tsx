@@ -38,25 +38,40 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(({
     { id: 'summarize', icon: <FileText style={{ width: '14px', height: '14px', color: '#22c55e' }} />, label: 'Summarize' },
   ];
 
-  const handleOptionSelect = async (option: string) => {
+  const handleOptionSelect = async (option: string, messageIndex?: number) => {
     setCurrentOption(option);
     setIsLoading(true);
     setShowResponse(true);
     setShowOptions(false);
     setShowChat(false);
-    
-   // setMessages([{ role: 'user', content: selectedText }]);
 
     try {
-      const stream = await modifyText(option, selectedText);
-      setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
-      
-      let fullResponse = '';
-      for await (const chunk of stream) {
-        fullResponse += chunk;
-        setMessages(prev => prev.map((msg, idx) => 
-          idx === prev.length - 1 ? { ...msg, content: fullResponse } : msg
-        ));
+      // If messageIndex is provided, we're regenerating a specific message
+      if (messageIndex !== undefined) {
+        // Keep messages up to the one being regenerated
+        setMessages(prev => prev.slice(0, messageIndex));
+        const stream = await modifyText(option, selectedText);
+        setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
+        
+        let fullResponse = '';
+        for await (const chunk of stream) {
+          fullResponse += chunk;
+          setMessages(prev => prev.map((msg, idx) => 
+            idx === prev.length - 1 ? { ...msg, content: fullResponse } : msg
+          ));
+        }
+      } else {
+        // Initial generation
+        const stream = await modifyText(option, selectedText);
+        setMessages([{ role: 'assistant', content: '' }]);
+        
+        let fullResponse = '';
+        for await (const chunk of stream) {
+          fullResponse += chunk;
+          setMessages(prev => prev.map((msg, idx) => 
+            idx === prev.length - 1 ? { ...msg, content: fullResponse } : msg
+          ));
+        }
       }
       setShowChat(true);
     } catch (error) {
@@ -241,7 +256,7 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(({
                     isUser={message.role === 'user'}
                     content={message.content}
                     isLoading={isLoading && index === messages.length - 1 && message.role === 'assistant'}
-                    onRegenerate={message.role === 'assistant' ? () => handleOptionSelect(currentOption) : undefined}
+                    onRegenerate={message.role === 'assistant' ? () => handleOptionSelect(currentOption, index) : undefined}
                     onCopy={message.role === 'assistant' ? () => navigator.clipboard.writeText(message.content) : undefined}
                   />
                 ))}
