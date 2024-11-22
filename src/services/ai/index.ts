@@ -42,12 +42,11 @@ export interface AIMessage {
         let previousContent = '';
         
         for await (const chunk of stream) {
-          // Get only the new content by removing the previous content
           const newContent = chunk.replace(previousContent, '');
           previousContent = chunk;
           
-          // Only yield if there's new content
           if (newContent.trim()) {
+            console.log('Streaming chunk:', newContent);
             yield newContent;
           }
         }

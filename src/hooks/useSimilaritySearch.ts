@@ -19,8 +19,33 @@ export const useSimilaritySearch = () => {
     try {
       const queryEmbedding = await embeddingService.generateEmbedding(query);
       const similarPages = await db.searchPagesBySimilarity(queryEmbedding, query);
-      console.log('Found similar pages:', similarPages);
-      setResults(similarPages);
+      
+      // Boost scores for exact matches in title or content
+      const boostedResults = similarPages.map(page => {
+        let score = page.relevanceScore || 0;
+        
+        // Boost for exact matches in title
+        if (page.title.toLowerCase().includes(query.toLowerCase())) {
+          score += 0.3; // 30% boost for title matches
+        }
+        
+        // Boost for exact matches in content
+        if (page.content.toLowerCase().includes(query.toLowerCase())) {
+          score += 0.2; // 20% boost for content matches
+        }
+
+        return {
+          ...page,
+          relevanceScore: Math.min(score, 1) // Cap at 100%
+        };
+      });
+
+      // Sort by boosted scores
+      boostedResults.sort((a, b) => 
+        (b.relevanceScore || 0) - (a.relevanceScore || 0)
+      );
+
+      setResults(boostedResults);
     } catch (err) {
       setError('Failed to perform similarity search');
       console.error(err);

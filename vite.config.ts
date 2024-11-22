@@ -15,10 +15,20 @@ const manifest = {
     "storage",
     "unlimitedStorage",
     "scripting",
+    "commands"
   ],
   host_permissions: [
     "<all_urls>"
   ],
+  commands: {
+    "show-text-options": {
+      "suggested_key": {
+        "default": "Ctrl+M",
+        "mac": "Command+M"
+      },
+      "description": "Show text modification options"
+    }
+  },
   action: {
     default_title: "Nano Search"
   },
@@ -29,15 +39,19 @@ const manifest = {
   content_scripts: [
     {
       matches: ["<all_urls>"],
-      js: ["src/content-scripts/index.ts"]
+      js: ["src/content-scripts/index.ts"],
+      run_at: "document_idle"
     }
   ],
   chrome_url_overrides: {
     newtab: "index.html"
-  }
+  },
+  web_accessible_resources: [{
+    resources: ["assets/*"],
+    matches: ["<all_urls>"]
+  }]
 }
 
-// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
     react(),
@@ -46,7 +60,20 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(__dirname, './src'),
+      '@lib': resolve(__dirname, './src/lib'),
+      '@styles': resolve(__dirname, './src/styles'),
     },
+  },
+  build: {
+    rollupOptions: {
+      input: {
+        background: resolve(__dirname, 'src/background/index.ts'),
+        'content-scripts': resolve(__dirname, 'src/content-scripts/index.ts'),
+      },
+      output: {
+        entryFileNames: '[name].js'
+      }
+    }
   },
   server: {
     port: 5173,

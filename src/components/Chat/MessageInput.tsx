@@ -1,5 +1,7 @@
 import React, { useState, KeyboardEvent } from 'react';
-import { PaperAirplaneIcon } from '@heroicons/react/24/solid';
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Send } from "lucide-react";
 
 interface MessageInputProps {
   onSendMessage: (message: string) => void;
@@ -27,28 +29,24 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   };
 
   return (
-    <div className="p-4 bg-slate-800 border-t border-slate-700">
+    <div className="p-4 border-t border-[#27272a] bg-background">
       <div className="relative">
-        <textarea
+        <Textarea
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          onKeyPress={handleKeyPress}
+          onKeyDown={handleKeyPress}
           placeholder="Type a message..."
-          className="w-full resize-none rounded-lg border border-slate-600 bg-slate-700 text-slate-100 pl-4 pr-12 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent min-h-[52px] max-h-[200px] text-sm placeholder-slate-400"
-          rows={1}
+          className="pr-12 resize-none min-h-[52px] max-h-[200px]"
           disabled={disabled}
         />
-        <button
+        <Button
+          size="icon"
           onClick={handleSubmit}
           disabled={disabled || !message.trim()}
-          className={`absolute right-2 bottom-2.5 p-1.5 rounded-lg ${
-            disabled || !message.trim()
-              ? 'text-slate-500 cursor-not-allowed'
-              : 'text-indigo-400 hover:bg-slate-600'
-          }`}
+          className="absolute right-2 bottom-2"
         >
-          <PaperAirplaneIcon className="h-5 w-5" />
-        </button>
+          <Send className="h-4 w-4" />
+        </Button>
       </div>
     </div>
   );

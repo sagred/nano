@@ -10,32 +10,36 @@
       "storage",
       "unlimitedStorage",
       "scripting",
-      "<all_urls>"
+      "commands",
+      "activeTab"
     ],
-    "host_permissions": [
-      "<all_urls>"
-    ],
+    "commands": {
+      "show-text-options": {
+        "suggested_key": {
+          "default": "Ctrl+M",
+          "mac": "Command+M"
+        },
+        "description": "Show text modification options"
+      }
+    },
     "background": {
-      "service_worker": "src/background/index.ts",
+      "service_worker": "dist/background.js",
       "type": "module"
     },
     "content_scripts": [
       {
         "matches": ["<all_urls>"],
-        "js": ["src/content-scripts/index.ts"],
-        "run_at": "document_idle"
+        "js": ["dist/content-scripts.js"],
+        "run_at": "document_end"
       }
     ],
-    "chrome_url_overrides": {
-      "newtab": "index.html"
-    },
     "web_accessible_resources": [
       {
-        "resources": ["assets/*"],
+        "resources": ["dist/*"],
         "matches": ["<all_urls>"]
       }
     ],
     "action": {
       "default_title": "Nano Search"
     }
-  }
+}
