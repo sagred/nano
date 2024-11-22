@@ -19,6 +19,7 @@ style.textContent = `
     align-items: center;
     justify-content: center;
     z-index: 999999;
+    isolation: isolate;
   }
   .modal-backdrop {
     position: fixed;

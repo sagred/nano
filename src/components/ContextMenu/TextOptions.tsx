@@ -161,17 +161,60 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(({
     );
   };
 
+  const closeButtonStyles = {
+    position: 'absolute' as const,
+    top: '16px',
+    right: '16px',
+    padding: '8px',
+    background: 'rgba(39, 39, 42, 0.5)',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    borderRadius: '6px',
+    color: '#71717a',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    transition: 'all 0.2s ease',
+    backdropFilter: 'blur(8px)',
+    zIndex: 10,
+    width: '32px',
+    height: '32px'
+  };
+
   return (
     <div className="modal-container">
       <div className="modal-backdrop" onClick={onClose} />
+      
       <div ref={ref} className="modal-content" style={{ 
         width: '700px',
         height: '500px',
         background: '#18181B',
         borderRadius: '12px',
         display: 'flex',
-        flexDirection: 'column'
+        flexDirection: 'column',
+        position: 'relative'
       }}>
+        <button 
+          onClick={onClose} 
+          style={closeButtonStyles}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = 'rgba(39, 39, 42, 0.8)';
+            e.currentTarget.style.color = '#f4f4f5';
+            e.currentTarget.style.transform = 'scale(1.05)';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = 'rgba(39, 39, 42, 0.5)';
+            e.currentTarget.style.color = '#71717a';
+            e.currentTarget.style.transform = 'scale(1)';
+          }}
+        >
+          <X style={{ 
+            width: '16px', 
+            height: '16px',
+            strokeWidth: 2.5 
+          }} />
+        </button>
+
         {/* Scrollable container for all content */}
         <div style={{ 
           flex: 1,
@@ -181,35 +224,33 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(({
         }}>
           {/* Header - stays at top */}
           <div style={{
-            padding: '16px',
+            padding: '12px',
+            paddingLeft: '24px',
+            paddingRight: '24px',
             borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-            background: '#18181B'
+            background: '#18181B',
+            position: 'relative'
           }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between'
+            <h2 style={{ 
+              color: '#f4f4f5', 
+              fontSize: '18px',
+              fontWeight: 500,
+              marginBottom: '12px'
             }}>
-              <h2 style={{ color: '#f4f4f5', fontSize: '18px' }}>
-                What do you want to do with the selected text?
-              </h2>
-              <button onClick={onClose} style={{
-                background: 'transparent',
-                border: 'none',
-                color: '#71717a',
-                cursor: 'pointer',
-                padding: '4px'
-              }}>
-                <X style={{ width: '16px', height: '16px' }} />
-              </button>
-            </div>
-            <p style={{ color: '#71717a', fontSize: '14px', marginTop: '4px' }}>
+              What do you want to do with the selected text?
+            </h2>
+            <p style={{ 
+              color: '#71717a', 
+              fontSize: '14px',
+              lineHeight: '1.5',
+              maxWidth: '90%'
+            }}>
               {selectedText.substring(0, 100)}...
             </p>
           </div>
 
           {/* Options and Response content */}
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: 1, padding: '12px' }}>
             {showOptions && (
               <div style={{ display: 'flex', flexDirection: 'column' }}>
                 {options.map((option) => (
@@ -219,6 +260,8 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(({
                     style={{
                       width: '100%',
                       padding: '12px',
+                      paddingLeft: '24px',
+                      paddingRight: '24px',
                       display: 'flex',
                       alignItems: 'center',
                       gap: '8px',
@@ -227,7 +270,8 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(({
                       color: '#d4d4d8',
                       cursor: 'pointer',
                       fontSize: '14px',
-                      textAlign: 'left'
+                      textAlign: 'left',
+                      borderRadius: '6px'
                     }}
                     onMouseEnter={e => {
                       e.currentTarget.style.background = '#27272a';
