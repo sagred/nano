@@ -26,13 +26,12 @@ style.textContent = `
   .modal-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.3);
-    backdrop-filter: blur(4px);
   }
   .modal-content {
     position: relative;
     width: 600px;
-    height: 400px;
+    min-height: 400px;
+    max-height: 600px;
     background: #18181B;
     border-radius: 12px;
     box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);

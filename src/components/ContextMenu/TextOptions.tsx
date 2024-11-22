@@ -30,6 +30,7 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
   const responseContainerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const options = [
     { id: 'improve', icon: <Wand2 style={{ width: '14px', height: '14px', color: '#22c55e' }} />, label: 'Improve Writing' },
@@ -44,6 +45,11 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(({
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+        return;
+      }
+      
       if (!showOptions) return;
 
       switch (e.key) {
@@ -71,10 +77,9 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(({
       }
     };
 
-    // Listen on the document level but check if modal is open
     document.addEventListener('keydown', handleKeyDown, true);
     return () => document.removeEventListener('keydown', handleKeyDown, true);
-  }, [showOptions, focusedOptionIndex, options]);
+  }, [showOptions, focusedOptionIndex, options, onClose]);
 
   useEffect(() => {
     const container = responseContainerRef.current;
@@ -149,6 +154,10 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(({
       setMessages(prev => [...prev, { role: 'assistant', content: 'Failed to process your request. Please try again.' }]);
     } finally {
       setIsLoading(false);
+      // Focus input after response is complete
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
     }
   };
 
@@ -173,6 +182,10 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(({
       console.error('Chat error:', error);
     } finally {
       setIsLoading(false);
+      // Focus input after response is complete
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
     }
   };
 
@@ -257,8 +270,7 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(({
       <div className="modal-backdrop" onClick={onClose} />
       
       <div ref={ref} className="modal-content" style={{ 
-        width: '700px',
-        height: '500px',
+       
         background: '#18181B',
         borderRadius: '12px',
         display: 'flex',
@@ -399,6 +411,7 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(({
                       gap: '8px'
                     }}>
                       <input
+                        ref={inputRef}
                         type="text"
                         value={chatMessage}
                         onChange={(e) => setChatMessage(e.target.value)}
