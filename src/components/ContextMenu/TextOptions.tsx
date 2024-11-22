@@ -197,7 +197,7 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(({
           {!isUser && !isLoading && onRegenerate && onCopy && (
             <div style={{
               display: 'flex',
-              gap: '8px',
+              gap: '4px',
               marginTop: '12px'
             }}>
               <ActionButton
@@ -212,7 +212,7 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(({
                 onClick={onCopy}
                 tooltip="Copy to clipboard"
               />
-            </div>
+             </div>
           )}
         </div>
       </div>

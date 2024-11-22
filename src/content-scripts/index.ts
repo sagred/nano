@@ -20,6 +20,8 @@ style.textContent = `
     justify-content: center;
     z-index: 999999;
     isolation: isolate;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, 
+      Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
   }
   .modal-backdrop {
     position: fixed;
@@ -37,7 +39,17 @@ style.textContent = `
     overflow: hidden;
     display: flex;
     flex-direction: column;
-  });
+    font-size: 14px;
+    line-height: 1.5;
+    color: #f4f4f5;
+  }
+  * {
+    font-family: inherit;
+  }
+  input, button {
+    font-family: inherit;
+    font-size: inherit;
+  }
   @keyframes spin {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
