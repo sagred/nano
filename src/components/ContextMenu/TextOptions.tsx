@@ -5,7 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import ActionButton from './ActionButton';
 
 interface TextOptionsProps {
-  selectedText: string;
+  selectedText?: string;
   onClose: () => void;
 }
 
@@ -31,6 +31,9 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(({
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
   const responseContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [pendingText, setPendingText] = useState('');
+  const [pendingOption, setPendingOption] = useState<string | null>(null);
+  const [stage, setStage] = useState<'options' | 'input' | 'response'>('options');
 
   const options = [
     { id: 'improve', icon: <Wand2 style={{ width: '14px', height: '14px', color: '#22c55e' }} />, label: 'Improve Writing' },
@@ -46,7 +49,18 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onClose();
+        if (stage === 'options') {
+          onClose();
+        } else {
+          setStage('options');
+          setShowOptions(true);
+          setShowResponse(false);
+          setMessages([]);
+          setIsLoading(false);
+          setShowChat(false);
+          setChatMessage('');
+          setCurrentOption('improve');
+        }
         return;
       }
       
@@ -79,7 +93,7 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(({
 
     document.addEventListener('keydown', handleKeyDown, true);
     return () => document.removeEventListener('keydown', handleKeyDown, true);
-  }, [showOptions, focusedOptionIndex, options, onClose]);
+  }, [stage, showOptions, focusedOptionIndex, options, onClose]);
 
   useEffect(() => {
     const container = responseContainerRef.current;
@@ -115,49 +129,46 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(({
   }, [messages, shouldAutoScroll]);
 
   const handleOptionSelect = async (option: string, messageIndex?: number) => {
-    setCurrentOption(option);
-    setIsLoading(true);
-    setShowResponse(true);
-    setShowOptions(false);
-    setShowChat(false);
-
-    try {
-      // If messageIndex is provided, we're regenerating a specific message
-      if (messageIndex !== undefined) {
-        // Keep messages up to the one being regenerated
-        setMessages(prev => prev.slice(0, messageIndex));
-        const stream = await modifyText(option, selectedText);
-        setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
-        
-        let fullResponse = '';
-        for await (const chunk of stream) {
-          fullResponse += chunk;
-          setMessages(prev => prev.map((msg, idx) => 
-            idx === prev.length - 1 ? { ...msg, content: fullResponse } : msg
-          ));
-        }
-      } else {
-        // Initial generation
-        const stream = await modifyText(option, selectedText);
-        setMessages([{ role: 'assistant', content: '' }]);
-        
-        let fullResponse = '';
-        for await (const chunk of stream) {
-          fullResponse += chunk;
-          setMessages(prev => prev.map((msg, idx) => 
-            idx === prev.length - 1 ? { ...msg, content: fullResponse } : msg
-          ));
-        }
-      }
-      setShowChat(true);
-    } catch (error) {
-      setMessages(prev => [...prev, { role: 'assistant', content: 'Failed to process your request. Please try again.' }]);
-    } finally {
-      setIsLoading(false);
-      // Focus input after response is complete
+    if (!selectedText && !chatMessage.trim()) {
+      setCurrentOption(option);
+      setShowOptions(false);
+      setStage('input');
       setTimeout(() => {
         inputRef.current?.focus();
       }, 100);
+      return;
+    }
+
+    const textToProcess = selectedText || chatMessage;
+    setCurrentOption(option);
+    setIsLoading(true);
+    setShowOptions(false);
+    setStage('response');
+
+    try {
+      const stream = await modifyText(option, textToProcess);
+      // Add the user's text as the first message
+      setMessages([
+        { role: 'user', content: textToProcess },
+        { role: 'assistant', content: '' }
+      ]);
+      
+      let fullResponse = '';
+      for await (const chunk of stream) {
+        fullResponse += chunk;
+        setMessages(prev => prev.map((msg, idx) => 
+          idx === prev.length - 1 ? { ...msg, content: fullResponse } : msg
+        ));
+      }
+      setChatMessage(''); // Clear input after processing
+      setShowChat(true);
+    } catch (error) {
+      setMessages([
+        { role: 'user', content: textToProcess },
+        { role: 'assistant', content: 'Failed to process your request. Please try again.' }
+      ]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -323,16 +334,20 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(({
               fontWeight: 500,
               marginBottom: '12px'
             }}>
-              What do you want to do with the selected text?
+              {selectedText 
+                ? 'What do you want to do with the selected text?' 
+                : 'What would you like to do?'}
             </h2>
-            <p style={{ 
-              color: '#71717a', 
-              fontSize: '14px',
-              lineHeight: '1.5',
-              maxWidth: '90%'
-            }}>
-              {selectedText.substring(0, 100)}...
-            </p>
+            {selectedText && (
+              <p style={{ 
+                color: '#71717a', 
+                fontSize: '14px',
+                lineHeight: '1.5',
+                maxWidth: '90%'
+              }}>
+                {selectedText?.substring(0, 100)}...
+              </p>
+            )}
           </div>
 
           {/* Options and Response content */}
@@ -381,7 +396,104 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(({
               </div>
             )}
 
-            {showResponse && (
+            {pendingOption && !selectedText && (
+              <div style={{ padding: '16px 24px' }}>
+                <h3 style={{ margin: '0 0 12px 0' }}>Enter your text:</h3>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={pendingText}
+                    onChange={(e) => setPendingText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && pendingText.trim()) {
+                        handleOptionSelect(pendingOption);
+                      }
+                    }}
+                    placeholder="Type or paste your text here..."
+                    style={{
+                      flex: 1,
+                      padding: '8px 12px',
+                      background: 'var(--primary)',
+                      border: 'none',
+                      borderRadius: '6px',
+                      color: 'var(--primary-foreground)',
+                      fontSize: '14px',
+                      outline: 'none'
+                    }}
+                    autoFocus
+                  />
+                  <button
+                    onClick={() => handleOptionSelect(pendingOption)}
+                    disabled={!pendingText.trim()}
+                    style={{
+                      padding: '8px 12px',
+                      background: 'var(--primary)',
+                      border: 'none',
+                      borderRadius: '6px',
+                      color: 'var(--primary-foreground)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Process
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {stage === 'input' && (
+              <div style={{ padding: '16px 24px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                  {options.find(opt => opt.id === currentOption)?.icon}
+                  <h3 style={{ margin: 0 }}>{options.find(opt => opt.id === currentOption)?.label}</h3>
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={chatMessage}
+                    onChange={(e) => setChatMessage(e.target.value)}
+                    onKeyDown={(e) => {
+                      e.stopPropagation();
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleOptionSelect(currentOption);
+                      }
+                    }}
+                    placeholder="Type or paste your text here..."
+                    style={{
+                      flex: 1,
+                      padding: '8px 12px',
+                      background: 'var(--primary)',
+                      border: 'none',
+                      borderRadius: '6px',
+                      color: 'var(--primary-foreground)',
+                      fontSize: '14px',
+                      outline: 'none'
+                    }}
+                  />
+                  <button
+                    onClick={() => handleOptionSelect(currentOption)}
+                    disabled={!chatMessage.trim()}
+                    style={{
+                      padding: '8px',
+                      background: 'var(--primary)',
+                      border: 'none',
+                      borderRadius: '6px',
+                      color: 'var(--primary-foreground)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    <Send style={{ width: '16px', height: '16px' }} />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {stage === 'response' && (
               <div style={{ 
                 display: 'flex', 
                 flexDirection: 'column',

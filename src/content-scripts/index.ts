@@ -83,16 +83,12 @@ const showTextOptions = () => {
   const selection = window.getSelection();
   const text = selection?.toString().trim();
   
-  if (text) {
-    console.log('Showing text options menu');
-    
-    root.render(
-      React.createElement(TextOptions, {
-        selectedText: text,
-        onClose: () => root.render(null)
-      })
-    );
-  }
+  root.render(
+    React.createElement(TextOptions, {
+      selectedText: text || undefined,
+      onClose: () => root.render(null)
+    })
+  );
 };
 
 // Listen for keyboard shortcut
