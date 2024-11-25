@@ -41,6 +41,8 @@ style.textContent = `
     font-size: 14px;
     line-height: 1.5;
     color: #f4f4f5;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+
   }
   * {
     font-family: inherit;
@@ -69,6 +71,39 @@ style.textContent = `
   .action-button:hover {
     background: rgba(34, 197, 94, 0.1);
     color: #22c55e;
+  }
+  .loading-dots {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 8px;
+    height: 20px;
+  }
+
+  .loading-dots span {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background-color: #22c55e;
+    display: inline-block;
+    animation: bounce 1.4s infinite ease-in-out both;
+  }
+
+  .loading-dots span:nth-child(1) {
+    animation-delay: -0.32s;
+  }
+
+  .loading-dots span:nth-child(2) {
+    animation-delay: -0.16s;
+  }
+
+  @keyframes bounce {
+    0%, 80%, 100% { 
+      transform: scale(0);
+    } 
+    40% { 
+      transform: scale(1);
+    }
   }
 `;
 

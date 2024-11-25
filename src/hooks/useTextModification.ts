@@ -12,10 +12,11 @@ export const useTextModification = () => {
       rephrase: `Rephrase this text. Only provide the rephrased version, no explanations: "${text}"`,
       continue: `Continue this text. Only provide the continuation, no explanations: "${text}"`,
       summarize: `Summarize this text. Only provide the summary, no explanations: "${text}"`,
-      chat: text
+      chat: text,
+      custom: text
     };
 
-    const prompt = prompts[option as keyof typeof prompts];
+    const prompt = option === 'custom' ? text : prompts[option as keyof typeof prompts];
     return aiService.streamMessage(prompt);
   }, []);
 

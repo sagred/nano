@@ -1,8 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Wand2, Check, Expand, Shrink, Sparkles, RefreshCw, PenTool, X, Loader2, Send, FileText, Copy } from "lucide-react";
+import { Wand2, Check, Expand, Shrink, Sparkles, RefreshCw, PenTool, X, Loader2, Send, FileText, Copy, Plus, ArrowLeft, Pencil } from "lucide-react";
 import { useTextModification } from '@/hooks/useTextModification';
 import ReactMarkdown from 'react-markdown';
 import ActionButton from './ActionButton';
+import { LoadingAnimation } from './LoadingAnimation';
+import { useCustomInstructions } from '@/hooks/useCustomInstructions';
+import { AddInstructionForm } from './AddInstructionForm';
+import { instructionsDb } from '@/services/storage/instructions';
+import { CustomInstruction } from '@/types/instructions';
 
 interface TextOptionsProps {
   selectedText?: string;
@@ -33,9 +38,13 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(({
   const inputRef = useRef<HTMLInputElement>(null);
   const [pendingText, setPendingText] = useState('');
   const [pendingOption, setPendingOption] = useState<string | null>(null);
-  const [stage, setStage] = useState<'options' | 'input' | 'response'>('options');
+  const [stage, setStage] = useState<'options' | 'input' | 'response' | 'add-instruction'>('options');
 
-  const options = [
+  const { customInstructions, refreshInstructions } = useCustomInstructions();
+  
+  const [editingInstruction, setEditingInstruction] = useState<CustomInstruction | undefined>(undefined);
+
+  const allOptions = [
     { id: 'improve', icon: <Wand2 style={{ width: '14px', height: '14px', color: '#22c55e' }} />, label: 'Improve Writing' },
     { id: 'grammar', icon: <Check style={{ width: '14px', height: '14px', color: '#22c55e' }} />, label: 'Fix Grammar & Spelling' },
     { id: 'longer', icon: <Expand style={{ width: '14px', height: '14px', color: '#22c55e' }} />, label: 'Make Longer' },
@@ -44,11 +53,79 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(({
     { id: 'rephrase', icon: <RefreshCw style={{ width: '14px', height: '14px', color: '#22c55e' }} />, label: 'Rephrase' },
     { id: 'continue', icon: <PenTool style={{ width: '14px', height: '14px', color: '#22c55e' }} />, label: 'Continue Writing' },
     { id: 'summarize', icon: <FileText style={{ width: '14px', height: '14px', color: '#22c55e' }} />, label: 'Summarize' },
+    ...customInstructions.map(instruction => ({
+      id: instruction.id,
+      icon: <Sparkles style={{ width: '14px', height: '14px', color: '#22c55e' }} />,
+      label: (
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          width: '100%',
+          gap: '8px'
+        }}>
+          <span>{instruction.name}</span>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              onClick={async (e) => {
+                e.stopPropagation();
+                setStage('add-instruction');
+                // Pass the instruction data for editing
+                setEditingInstruction(instruction);
+              }}
+              style={{
+                background: 'none',
+                border: 'none',
+                padding: 0,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                color: '#71717a'
+              }}
+              onMouseEnter={e => e.currentTarget.style.color = '#f4f4f5'}
+              onMouseLeave={e => e.currentTarget.style.color = '#71717a'}
+            >
+              <Pencil style={{ width: '14px', height: '14px' }} />
+            </button>
+            <button
+              onClick={async (e) => {
+                e.stopPropagation();
+                await instructionsDb.deleteInstruction(instruction.id);
+                refreshInstructions();
+              }}
+              style={{
+                background: 'none',
+                border: 'none',
+                padding: 0,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                color: '#71717a'
+              }}
+              onMouseEnter={e => e.currentTarget.style.color = '#f4f4f5'}
+              onMouseLeave={e => e.currentTarget.style.color = '#71717a'}
+            >
+              <X style={{ width: '14px', height: '14px' }} />
+            </button>
+          </div>
+        </div>
+      ),
+      isCustom: true,
+      instruction: instruction.instruction
+    }))
   ];
+
+  useEffect(() => {
+    refreshInstructions();
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        if (stage === 'add-instruction') {
+          setStage('options');
+          return;
+        }
         if (stage === 'options') {
           onClose();
         } else {
@@ -71,7 +148,7 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(({
           e.preventDefault();
           e.stopPropagation();
           setFocusedOptionIndex(prev => 
-            prev < options.length - 1 ? prev + 1 : prev
+            prev < allOptions.length - 1 ? prev + 1 : prev
           );
           break;
         case 'ArrowUp':
@@ -85,7 +162,7 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(({
           e.preventDefault();
           e.stopPropagation();
           if (focusedOptionIndex >= 0) {
-            handleOptionSelect(options[focusedOptionIndex].id);
+            handleOptionSelect(allOptions[focusedOptionIndex].id);
           }
           break;
       }
@@ -93,7 +170,7 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(({
 
     document.addEventListener('keydown', handleKeyDown, true);
     return () => document.removeEventListener('keydown', handleKeyDown, true);
-  }, [stage, showOptions, focusedOptionIndex, options, onClose]);
+  }, [stage, showOptions, focusedOptionIndex, allOptions, onClose]);
 
   useEffect(() => {
     const container = responseContainerRef.current;
@@ -101,7 +178,7 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(({
 
     const handleScroll = () => {
       const { scrollTop, scrollHeight, clientHeight } = container;
-      const isAtBottom = Math.abs(scrollHeight - scrollTop - clientHeight) < 50;
+      const isAtBottom = Math.abs(scrollHeight - scrollTop - clientHeight) < 20;
       setShouldAutoScroll(isAtBottom);
     };
 
@@ -129,6 +206,9 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(({
   }, [messages, shouldAutoScroll]);
 
   const handleOptionSelect = async (option: string, messageIndex?: number) => {
+    const selectedOption = allOptions.find(opt => opt.id === option);
+    if (!selectedOption) return;
+
     if (!selectedText && !chatMessage.trim()) {
       setCurrentOption(option);
       setShowOptions(false);
@@ -146,7 +226,16 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(({
     setStage('response');
 
     try {
-      const stream = await modifyText(option, textToProcess);
+      let stream;
+      if ('isCustom' in selectedOption && selectedOption.instruction) {
+        // Handle custom instruction
+        const customPrompt = selectedOption.instruction.replace('{text}', textToProcess);
+        stream = await modifyText('custom', customPrompt);
+      } else {
+        // Handle built-in options
+        stream = await modifyText(option, textToProcess);
+      }
+
       // Add the user's text as the first message
       setMessages([
         { role: 'user', content: textToProcess },
@@ -160,6 +249,7 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(({
           idx === prev.length - 1 ? { ...msg, content: fullResponse } : msg
         ));
       }
+      
       setChatMessage(''); // Clear input after processing
       setShowChat(true);
     } catch (error) {
@@ -229,6 +319,7 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(({
             fontSize: '14px',
           }}>
             <ReactMarkdown>{content}</ReactMarkdown>
+            {isLoading && <LoadingAnimation />}
           </div>
           
           {!isUser && !isLoading && onRegenerate && onCopy && (
@@ -320,10 +411,12 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(({
           }}
         >
           {/* Header - stays at top */}
+          {stage !== 'add-instruction' && (
           <div style={{
-            padding: '12px',
-            paddingLeft: '24px',
             paddingRight: '24px',
+            paddingLeft: '24px',
+            paddingTop: '8px',
+            paddingBottom: '12px',
             borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
             background: '#18181B',
             position: 'relative'
@@ -332,7 +425,7 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(({
               color: '#f4f4f5', 
               fontSize: '18px',
               fontWeight: 500,
-              marginBottom: '12px'
+              marginBottom: '4px'
             }}>
               {selectedText 
                 ? 'What do you want to do with the selected text?' 
@@ -349,50 +442,156 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(({
               </p>
             )}
           </div>
+        )}
 
           {/* Options and Response content */}
           <div style={{ flex: 1  }}>
-            {showOptions && (
-              <div style={{ display: 'flex', flexDirection: 'column', padding: '12px' }}>
-                {options.map((option) => (
+            {stage === 'options' && (
+              <>
+                <div style={{ display: 'flex', flexDirection: 'column', padding: '12px' }}>
+                  {allOptions.map((option) => (
+                    <button
+                      key={option.id}
+                      onClick={() => handleOptionSelect(option.id)}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = '#27272a';
+                        e.currentTarget.style.color = '#f4f4f5';
+                        setFocusedOptionIndex(allOptions.findIndex(opt => opt.id === option.id));
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'transparent';
+                        e.currentTarget.style.color = '#d4d4d8';
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '12px',
+                        paddingLeft: '24px',
+                        paddingRight: '24px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        background: focusedOptionIndex === allOptions.findIndex(opt => opt.id === option.id) 
+                          ? '#27272a' 
+                          : 'transparent',
+                        border: 'none',
+                        color: focusedOptionIndex === allOptions.findIndex(opt => opt.id === option.id)
+                          ? '#f4f4f5'
+                          : '#d4d4d8',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        textAlign: 'left',
+                        borderRadius: '6px',
+                        outline: 'none'
+                      }}
+                    >
+                      {option.icon}
+                      {option.label}
+                    </button>
+                  ))}
+<button
+  onClick={() => setStage('add-instruction')}
+  style={{
+    width: '100%',
+    padding: '12px',
+    paddingLeft: '24px',
+    paddingRight: '24px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    background: 'transparent',
+    border: 'none',
+    color: '#a1a1aa',
+    cursor: 'pointer',
+    fontSize: '13px',
+    textAlign: 'left',
+    outline: 'none',
+    position: 'relative'
+  }}
+  onMouseEnter={(e) => {
+    const span = e.currentTarget.querySelector('span');
+    if (span) {
+      span.style.textDecoration = 'underline';
+      span.style.textUnderlineOffset = '4px';
+      span.style.textDecorationThickness = '1px';
+      span.style.color = '#d4d4d8';
+    }
+    const icon = e.currentTarget.querySelector('svg');
+    if (icon) {
+      icon.style.color = '#d4d4d8';
+    }
+  }}
+  onMouseLeave={(e) => {
+    const span = e.currentTarget.querySelector('span');
+    if (span) {
+      span.style.textDecoration = 'none';
+      span.style.color = '#a1a1aa';
+    }
+    const icon = e.currentTarget.querySelector('svg');
+    if (icon) {
+      icon.style.color = '#a1a1aa';
+    }
+  }}
+>
+  <Plus style={{ width: '14px', height: '14px', color: '#a1a1aa', transition: 'color 0.2s ease' }} />
+  <span style={{ transition: 'all 0.2s ease' }}>
+    Create Custom Instruction
+  </span>
+</button>
+                </div>
+              </>
+            )}
+
+            {stage === 'add-instruction' && (
+              <div style={{ 
+                display: 'flex', 
+                flexDirection: 'column'
+              }}>
+                <div style={{
+                  padding: '24px',
+                  borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px'
+                }}>
                   <button
-                    key={option.id}
-                    onClick={() => handleOptionSelect(option.id)}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = '#27272a';
-                      e.currentTarget.style.color = '#f4f4f5';
-                      setFocusedOptionIndex(options.findIndex(opt => opt.id === option.id));
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'transparent';
-                      e.currentTarget.style.color = '#d4d4d8';
-                    }}
+                    onClick={() => setStage('options')}
                     style={{
-                      width: '100%',
-                      padding: '12px',
-                      paddingLeft: '24px',
-                      paddingRight: '24px',
+                      background: 'none',
+                      border: 'none',
+                      padding: '4px',
+                      cursor: 'pointer',
+                      color: '#71717a',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '8px',
-                      background: focusedOptionIndex === options.findIndex(opt => opt.id === option.id) 
-                        ? '#27272a' 
-                        : 'transparent',
-                      border: 'none',
-                      color: focusedOptionIndex === options.findIndex(opt => opt.id === option.id)
-                        ? '#f4f4f5'
-                        : '#d4d4d8',
-                      cursor: 'pointer',
-                      fontSize: '14px',
-                      textAlign: 'left',
-                      borderRadius: '6px',
-                      outline: 'none'
+                      justifyContent: 'center',
+                      borderRadius: '4px'
                     }}
+                    onMouseEnter={e => e.currentTarget.style.color = '#f4f4f5'}
+                    onMouseLeave={e => e.currentTarget.style.color = '#71717a'}
                   >
-                    {option.icon}
-                    {option.label}
+                    <ArrowLeft size={16} />
                   </button>
-                ))}
+                  <h3 style={{ 
+                    margin: 0,
+                    fontSize: '16px',
+                    fontWeight: 500,
+                    color: '#f4f4f5'
+                  }}>
+                    Create Custom Instruction
+                  </h3>
+                </div>
+                <AddInstructionForm
+                onClose={() => {
+                  setStage('options');
+                  setEditingInstruction(undefined);
+                }}
+                onAdd={() => {
+                  refreshInstructions();
+                  setStage('options');
+                  setEditingInstruction(undefined);
+                }}
+                editingInstruction={editingInstruction}
+              />
               </div>
             )}
 
@@ -444,8 +643,8 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(({
             {stage === 'input' && (
               <div style={{ padding: '16px 24px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                  {options.find(opt => opt.id === currentOption)?.icon}
-                  <h3 style={{ margin: 0 }}>{options.find(opt => opt.id === currentOption)?.label}</h3>
+                  {allOptions.find(opt => opt.id === currentOption)?.icon}
+                  <h3 style={{ margin: 0 }}>{allOptions.find(opt => opt.id === currentOption)?.label}</h3>
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <input
