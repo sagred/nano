@@ -62,6 +62,8 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(
       CustomInstruction | undefined
     >(undefined);
 
+    const [quickChatInput, setQuickChatInput] = useState("");
+
     const allOptions = [
       {
         id: "improve",
@@ -387,6 +389,43 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(
       }
     };
 
+    const handleQuickChat = async () => {
+      if (!quickChatInput.trim()) return;
+
+      const textToProcess = selectedText
+        ? `Context: "${selectedText}"\n\nQuestion: ${quickChatInput}`
+        : quickChatInput;
+
+      setIsLoading(true);
+      setStage("response");
+      setShowOptions(false);
+
+      try {
+        const stream = await modifyText("chat", textToProcess);
+        setMessages([
+          { role: "user", content: quickChatInput },
+          { role: "assistant", content: "" },
+        ]);
+
+        let fullResponse = "";
+        for await (const chunk of stream) {
+          fullResponse += chunk;
+          setMessages((prev) =>
+            prev.map((msg, idx) =>
+              idx === prev.length - 1 ? { ...msg, content: fullResponse } : msg
+            )
+          );
+        }
+
+        setQuickChatInput("");
+        setShowChat(true);
+      } catch (error) {
+        console.error("Chat error:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
     const MessageBlock = ({
       isUser,
       content,
@@ -565,29 +604,75 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(
             {/* Options and Response content */}
             <div style={{ flex: 1 }}>
               {stage === "options" && (
-                <>
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      padding: "12px",
-                    }}
-                  >
-                    {allOptions.map((option) => (
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    height: "100%",
+                  }}
+                >
+                  {/* Existing options list */}
+                  <div style={{ flex: 1, overflowY: "auto" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        padding: "12px",
+                      }}
+                    >
+                      {allOptions.map((option) => (
+                        <button
+                          key={option.id}
+                          onClick={() => handleOptionSelect(option.id)}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = "#27272a";
+                            e.currentTarget.style.color = "#f4f4f5";
+                            setFocusedOptionIndex(
+                              allOptions.findIndex(
+                                (opt) => opt.id === option.id
+                              )
+                            );
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = "transparent";
+                            e.currentTarget.style.color = "#d4d4d8";
+                          }}
+                          style={{
+                            width: "100%",
+                            padding: "12px",
+                            paddingLeft: "24px",
+                            paddingRight: "24px",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "8px",
+                            background:
+                              focusedOptionIndex ===
+                              allOptions.findIndex(
+                                (opt) => opt.id === option.id
+                              )
+                                ? "#27272a"
+                                : "transparent",
+                            border: "none",
+                            color:
+                              focusedOptionIndex ===
+                              allOptions.findIndex(
+                                (opt) => opt.id === option.id
+                              )
+                                ? "#f4f4f5"
+                                : "#d4d4d8",
+                            cursor: "pointer",
+                            fontSize: "14px",
+                            textAlign: "left",
+                            borderRadius: "6px",
+                            outline: "none",
+                          }}
+                        >
+                          {option.icon}
+                          {option.label}
+                        </button>
+                      ))}
                       <button
-                        key={option.id}
-                        onClick={() => handleOptionSelect(option.id)}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.background = "#27272a";
-                          e.currentTarget.style.color = "#f4f4f5";
-                          setFocusedOptionIndex(
-                            allOptions.findIndex((opt) => opt.id === option.id)
-                          );
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background = "transparent";
-                          e.currentTarget.style.color = "#d4d4d8";
-                        }}
+                        onClick={() => setStage("add-instruction")}
                         style={{
                           width: "100%",
                           padding: "12px",
@@ -596,86 +681,111 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(
                           display: "flex",
                           alignItems: "center",
                           gap: "8px",
-                          background:
-                            focusedOptionIndex ===
-                            allOptions.findIndex((opt) => opt.id === option.id)
-                              ? "#27272a"
-                              : "transparent",
+                          background: "transparent",
                           border: "none",
-                          color:
-                            focusedOptionIndex ===
-                            allOptions.findIndex((opt) => opt.id === option.id)
-                              ? "#f4f4f5"
-                              : "#d4d4d8",
+                          color: "#a1a1aa",
                           cursor: "pointer",
-                          fontSize: "14px",
+                          fontSize: "13px",
                           textAlign: "left",
-                          borderRadius: "6px",
                           outline: "none",
+                          position: "relative",
+                        }}
+                        onMouseEnter={(e) => {
+                          const span = e.currentTarget.querySelector("span");
+                          if (span) {
+                            span.style.textDecoration = "underline";
+                            span.style.textUnderlineOffset = "4px";
+                            span.style.textDecorationThickness = "1px";
+                            span.style.color = "#d4d4d8";
+                          }
+                          const icon = e.currentTarget.querySelector("svg");
+                          if (icon) {
+                            icon.style.color = "#d4d4d8";
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          const span = e.currentTarget.querySelector("span");
+                          if (span) {
+                            span.style.textDecoration = "none";
+                            span.style.color = "#a1a1aa";
+                          }
+                          const icon = e.currentTarget.querySelector("svg");
+                          if (icon) {
+                            icon.style.color = "#a1a1aa";
+                          }
                         }}
                       >
-                        {option.icon}
-                        {option.label}
+                        <Plus
+                          style={{
+                            width: "14px",
+                            height: "14px",
+                            color: "#a1a1aa",
+                            transition: "color 0.2s ease",
+                          }}
+                        />
+                        <span style={{ transition: "all 0.2s ease" }}>
+                          Create Custom Instruction
+                        </span>
                       </button>
-                    ))}
-                    <button
-                      onClick={() => setStage("add-instruction")}
+                    </div>
+                    <div
                       style={{
-                        width: "100%",
-                        padding: "12px",
-                        paddingLeft: "24px",
-                        paddingRight: "24px",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
-                        background: "transparent",
-                        border: "none",
-                        color: "#a1a1aa",
-                        cursor: "pointer",
-                        fontSize: "13px",
-                        textAlign: "left",
-                        outline: "none",
-                        position: "relative",
-                      }}
-                      onMouseEnter={(e) => {
-                        const span = e.currentTarget.querySelector("span");
-                        if (span) {
-                          span.style.textDecoration = "underline";
-                          span.style.textUnderlineOffset = "4px";
-                          span.style.textDecorationThickness = "1px";
-                          span.style.color = "#d4d4d8";
-                        }
-                        const icon = e.currentTarget.querySelector("svg");
-                        if (icon) {
-                          icon.style.color = "#d4d4d8";
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        const span = e.currentTarget.querySelector("span");
-                        if (span) {
-                          span.style.textDecoration = "none";
-                          span.style.color = "#a1a1aa";
-                        }
-                        const icon = e.currentTarget.querySelector("svg");
-                        if (icon) {
-                          icon.style.color = "#a1a1aa";
-                        }
+                        borderTop: "1px solid rgba(255, 255, 255, 0.1)",
+                        padding: "16px",
+                        background: "#18181b",
                       }}
                     >
-                      <Plus
-                        style={{
-                          width: "14px",
-                          height: "14px",
-                          color: "#a1a1aa",
-                          transition: "color 0.2s ease",
-                        }}
-                      />
-                      <span style={{ transition: "all 0.2s ease" }}>
-                        Create Custom Instruction
-                      </span>
-                    </button>
+                      <div style={{ display: "flex", gap: "8px" }}>
+                        <input
+                          type="text"
+                          value={quickChatInput}
+                          onChange={(e) => setQuickChatInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            e.stopPropagation();
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              handleQuickChat();
+                            }
+                          }}
+                          placeholder={
+                            selectedText
+                              ? "Ask about the selected text..."
+                              : "Ask anything..."
+                          }
+                          style={{
+                            flex: 1,
+                            padding: "8px 12px",
+                            background: "var(--primary)",
+                            border: "none",
+                            borderRadius: "6px",
+                            color: "var(--primary-foreground)",
+                            fontSize: "14px",
+                            outline: "none",
+                          }}
+                        />
+                        <button
+                          onClick={handleQuickChat}
+                          disabled={isLoading || !quickChatInput.trim()}
+                          style={{
+                            padding: "8px",
+                            background: "var(--primary)",
+                            border: "none",
+                            borderRadius: "6px",
+                            color: "var(--primary-foreground)",
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            opacity:
+                              isLoading || !quickChatInput.trim() ? 0.5 : 1,
+                          }}
+                        >
+                          <Send style={{ width: "16px", height: "16px" }} />
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                </>
+                </div>
               )}
 
               {stage === "add-instruction" && (
