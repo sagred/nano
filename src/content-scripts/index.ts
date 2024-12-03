@@ -29,7 +29,7 @@ style.textContent = `
   }
   .modal-content {
     position: relative;
-    width: 600px;
+    width: 700px;
     min-height: 400px;
     max-height: 600px;
     background: #18181B;

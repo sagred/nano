@@ -1,6 +1,4 @@
 import React, { useState, KeyboardEvent } from 'react';
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
 import { Send } from "lucide-react";
 
 interface MessageInputProps {
@@ -8,10 +6,7 @@ interface MessageInputProps {
   disabled?: boolean;
 }
 
-export const MessageInput: React.FC<MessageInputProps> = ({ 
-  onSendMessage, 
-  disabled 
-}) => {
+export const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, disabled }) => {
   const [message, setMessage] = useState('');
 
   const handleSubmit = () => {
@@ -29,24 +24,22 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   };
 
   return (
-    <div className="p-4 border-t border-[#27272a] bg-background">
-      <div className="relative">
-        <Textarea
+    <div className="chat-input-container">
+      <div className="chat-input">
+        <input
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={handleKeyPress}
           placeholder="Type a message..."
-          className="pr-12 resize-none min-h-[52px] max-h-[200px]"
           disabled={disabled}
         />
-        <Button
-          size="icon"
+        <button
           onClick={handleSubmit}
           disabled={disabled || !message.trim()}
-          className="absolute right-2 bottom-2"
+          className="chat-button"
         >
           <Send className="h-4 w-4" />
-        </Button>
+        </button>
       </div>
     </div>
   );

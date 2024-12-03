@@ -13,4 +13,15 @@ declare namespace chrome {
       }>;
     }
   }
+  
+  export namespace sidePanel {
+    export function setOptions(options: {
+      path: string;
+      enabled: boolean;
+    }): Promise<void>;
+    
+    export function open(options: {
+      windowId: number;
+    }): Promise<void>;
+  }
 } 

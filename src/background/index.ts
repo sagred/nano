@@ -1,9 +1,43 @@
 import { aiService } from '@/services/ai';
 
-console.log('Background script loaded')
+console.log('Background script loaded');
 
-export {}
+// Function to check if side panel API is available
+const isSidePanelAvailable = () => {
+  return chrome?.sidePanel && typeof chrome.sidePanel.open === 'function';
+};
 
+// Initialize side panel when extension is installed or updated
+chrome.runtime.onInstalled.addListener(async () => {
+  if (!isSidePanelAvailable()) {
+    console.error('Side Panel API not available');
+    return;
+  }
+
+  try {
+    await chrome.sidePanel.setOptions({
+      path: 'src/sidepanel.html',
+      enabled: true
+    });
+    console.log('Side panel initialized successfully');
+  } catch (error) {
+    console.error('Failed to initialize side panel:', error);
+  }
+});
+
+// Handle clicking the extension icon
+chrome.action.onClicked.addListener(async (tab) => {
+  if (!tab.id || !isSidePanelAvailable()) return;
+  
+  try {
+    await chrome.sidePanel.open({ windowId: tab.windowId });
+    console.log('Side panel opened successfully');
+  } catch (error) {
+    console.error('Error opening side panel:', error);
+  }
+});
+
+// Existing code remains the same
 chrome.commands.onCommand.addListener((command) => {
   if (command === "show-text-options") {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
