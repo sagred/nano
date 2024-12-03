@@ -56,7 +56,7 @@ export const AddInstructionForm: React.FC<AddInstructionFormProps> = ({
           <label style={{
             display: 'block',
             fontSize: '14px',
-            color: '#a1a1aa',
+            color: '#f4f4f5',
             marginBottom: '8px',
             fontWeight: 500
           }}>
@@ -66,14 +66,19 @@ export const AddInstructionForm: React.FC<AddInstructionFormProps> = ({
             value={name}
             onChange={(e) => setName(e.target.value)}
             style={{
-              width: '95%',
+              width: '100%',
               padding: '12px',
-              background: '#18181b',
-              border: '1px solid #3f3f46',
+              background: '#000000',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
               borderRadius: '8px',
               color: '#f4f4f5',
               fontSize: '14px',
-              outline: 'none'
+              outline: 'none',
+              transition: 'all 0.2s ease',
+              '&:focus': {
+                borderColor: 'rgba(255, 255, 255, 0.2)',
+                boxShadow: '0 0 0 2px rgba(255, 255, 255, 0.05)',
+              }
             }}
             placeholder="Enter a name for your instruction"
           />
@@ -83,7 +88,7 @@ export const AddInstructionForm: React.FC<AddInstructionFormProps> = ({
           <label style={{
             display: 'block',
             fontSize: '14px',
-            color: '#a1a1aa',
+            color: '#f4f4f5',
             marginBottom: '8px',
             fontWeight: 500
           }}>
@@ -93,10 +98,10 @@ export const AddInstructionForm: React.FC<AddInstructionFormProps> = ({
             value={instruction}
             onChange={(e) => setInstruction(e.target.value)}
             style={{
-              width: '95%',
+              width: '100%',
               padding: '12px',
-              background: '#18181b',
-              border: '1px solid #3f3f46',
+              background: '#000000',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
               borderRadius: '8px',
               color: '#f4f4f5',
               fontSize: '14px',
@@ -104,38 +109,42 @@ export const AddInstructionForm: React.FC<AddInstructionFormProps> = ({
               outline: 'none',
               resize: 'vertical',
               minHeight: '160px',
-              fontFamily: 'inherit'
+              fontFamily: 'inherit',
+              transition: 'all 0.2s ease',
+              '&:focus': {
+                borderColor: 'rgba(255, 255, 255, 0.2)',
+                boxShadow: '0 0 0 2px rgba(255, 255, 255, 0.05)',
+              }
             }}
             placeholder="Enter your custom instruction template. Use {text} where the selected text should be inserted."
           />
         </div>
         
-        <div style={{ 
-          display: 'flex', 
-          width: '100%' 
-        }}>
-          <button
-            type="submit"
-            disabled={!name.trim() || !instruction.trim()}
-            style={{
-              padding: '12px',
-              background: '#22c55e',
-              border: 'none',
-              borderRadius: '8px',
-              color: 'white',
-              cursor: 'pointer',
-              fontSize: '14px',
-              opacity: (!name.trim() || !instruction.trim()) ? 0.5 : 1,
-              width: '100%',
-              fontWeight: 500,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            {editingInstruction ? 'Update Instruction' : 'Create Instruction'}
-          </button>
-        </div>
+        <button
+          type="submit"
+          disabled={!name.trim() || !instruction.trim()}
+          style={{
+            padding: '12px',
+            background: '#22c55e',
+            border: 'none',
+            borderRadius: '8px',
+            color: 'white',
+            cursor: 'pointer',
+            fontSize: '14px',
+            opacity: (!name.trim() || !instruction.trim()) ? 0.5 : 1,
+            width: '100%',
+            fontWeight: 500,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.2s ease',
+            '&:hover': {
+              background: '#16a34a',
+            }
+          }}
+        >
+          {editingInstruction ? 'Update Instruction' : 'Create Instruction'}
+        </button>
       </form>
     </div>
   );

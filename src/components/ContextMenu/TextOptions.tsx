@@ -69,6 +69,8 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(
 
     const { getPageContent } = usePageContent();
 
+    const [isChatMode, setIsChatMode] = useState(false);
+
     const allOptions = [
       ...(selectedText ? [] : [{
         id: "summarize-page",
@@ -215,25 +217,36 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(
 
     useEffect(() => {
       const handleKeyDown = (e: KeyboardEvent) => {
-        // Handle Escape key for all stages
+        // Skip if the event is from an input and being handled there
+        const isFromInput = e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement;
+        if (isFromInput) return;
+
         if (e.key === "Escape") {
           e.preventDefault();
+          
+          // Always handle Escape for these cases
           if (stage === "add-instruction") {
             setStage("options");
             return;
           }
+          
           if (stage === "options") {
             onClose();
-          } else {
-            // Reset to options stage from any other stage (response, input)
-            setStage("options");
-            setShowOptions(true);
-            setShowResponse(false);
-            setMessages([]);
-            setIsLoading(false);
-            setShowChat(false);
-            setChatMessage("");
-            setCurrentOption("improve");
+            return;
+          }
+
+          // For other stages when not in input
+          setStage("options");
+          setShowOptions(true);
+          setPendingText("");
+          setPendingOption(null);
+          setMessages([]);
+          setIsLoading(false);
+          setShowChat(false);
+          setChatMessage("");
+          setCurrentOption("improve");
+          if (inputRef.current) {
+            inputRef.current.value = "";
           }
           return;
         }
@@ -376,9 +389,54 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(
       }
     };
 
+    const handleQuickChat = async () => {
+      if (!quickChatInput.trim()) return;
+
+      setIsLoading(true);
+      setStage("response");
+      setShowOptions(false);
+      setIsChatMode(true);
+
+      try {
+        const stream = await modifyText("chat", quickChatInput);
+        setMessages([
+          { 
+            role: "user", 
+            content: quickChatInput 
+          },
+          { role: "assistant", content: "" },
+        ]);
+
+        let fullResponse = "";
+        for await (const chunk of stream) {
+          fullResponse += chunk;
+          setMessages((prev) =>
+            prev.map((msg, idx) =>
+              idx === prev.length - 1 ? { ...msg, content: fullResponse } : msg
+            )
+          );
+        }
+
+        setQuickChatInput("");
+        setShowChat(true);
+      } catch (error) {
+        console.error("Chat error:", error);
+        setMessages([
+          { role: "user", content: quickChatInput },
+          { 
+            role: "assistant", 
+            content: "Sorry, I couldn't process your request. Please try again." 
+          },
+        ]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
     const handleChat = async () => {
       if (!chatMessage.trim()) return;
       setIsLoading(true);
+      setIsChatMode(true);
 
       try {
         const stream = await modifyText("chat", chatMessage);
@@ -406,43 +464,6 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(
         setTimeout(() => {
           inputRef.current?.focus();
         }, 100);
-      }
-    };
-
-    const handleQuickChat = async () => {
-      if (!quickChatInput.trim()) return;
-
-      const textToProcess = selectedText
-        ? `Context: "${selectedText}"\n\nQuestion: ${quickChatInput}`
-        : quickChatInput;
-
-      setIsLoading(true);
-      setStage("response");
-      setShowOptions(false);
-
-      try {
-        const stream = await modifyText("chat", textToProcess);
-        setMessages([
-          { role: "user", content: quickChatInput },
-          { role: "assistant", content: "" },
-        ]);
-
-        let fullResponse = "";
-        for await (const chunk of stream) {
-          fullResponse += chunk;
-          setMessages((prev) =>
-            prev.map((msg, idx) =>
-              idx === prev.length - 1 ? { ...msg, content: fullResponse } : msg
-            )
-          );
-        }
-
-        setQuickChatInput("");
-        setShowChat(true);
-      } catch (error) {
-        console.error("Chat error:", error);
-      } finally {
-        setIsLoading(false);
       }
     };
 
@@ -593,9 +614,73 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(
       };
     }, []);
 
+    // Add this helper function to get the header text
+    const getHeaderText = () => {
+      if (stage === "add-instruction") {
+        return editingInstruction ? "Edit Custom Instruction" : "Create Custom Instruction";
+      }
+
+      if (stage === "input") {
+        const option = allOptions.find(opt => opt.id === currentOption);
+        return option?.label || '';
+      }
+
+      if (stage === "response") {
+        // Always show "Chat" if in chat mode
+        if (isChatMode) {
+          return "Chat";
+        }
+        
+        // For summarize page
+        if (messages[0]?.content.startsWith("Summarizing:")) {
+          return "Summarize This Page";
+        }
+
+        // For other responses, show the current option
+        const option = allOptions.find(opt => opt.id === currentOption);
+        return option?.label || '';
+      }
+
+      return selectedText
+        ? "What do you want to do with the selected text?"
+        : "What would you like to do?";
+    };
+
+    // Add this helper function to get the subheader text
+    const getSubheaderText = () => {
+      if (stage === "options" && selectedText) {
+        return selectedText.substring(0, 100) + "...";
+      }
+      
+      if (stage === "response" && messages[0]) {
+        return messages[0].content;
+      }
+
+      return null;
+    };
+
+    // Reset chat mode when going back to options
+    const handleBackToOptions = () => {
+      setStage("options");
+      setShowOptions(true);
+      setChatMessage("");
+      setPendingText("");
+      setPendingOption(null);
+      setIsChatMode(false);
+    };
+
     return (
       <div className="modal-container">
-        <div className="modal-backdrop" onClick={onClose} />
+        <div 
+          className="modal-backdrop" 
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            onClose();
+          }}
+          onMouseDown={(e) => e.stopPropagation()}
+          onMouseUp={(e) => e.stopPropagation()}
+        />
 
         <div
           ref={ref}
@@ -656,19 +741,56 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(
                   position: "relative",
                 }}
               >
-                <h2
-                  style={{
-                    color: "#f4f4f5",
-                    fontSize: "18px",
-                    fontWeight: 500,
-                    marginBottom: selectedText ? "8px" : "0",
-                  }}
-                >
-                  {selectedText
-                    ? "What do you want to do with the selected text?"
-                    : "What would you like to do?"}
-                </h2>
-                {selectedText && (
+                <div style={{ 
+                  display: "flex", 
+                  alignItems: "center", 
+                  gap: "12px",
+                  minHeight: "28px"
+                }}>
+                  {stage !== "options" && (
+                    <button
+                      onClick={handleBackToOptions}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        padding: "4px",
+                        cursor: "pointer",
+                        color: "#71717a",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        borderRadius: "4px",
+                        transition: "all 0.2s ease",
+                        flexShrink: 0,
+                        width: "24px",
+                        height: "24px",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = "rgba(255, 255, 255, 0.05)";
+                        e.currentTarget.style.color = "#f4f4f5";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = "none";
+                        e.currentTarget.style.color = "#71717a";
+                      }}
+                    >
+                      <ArrowLeft size={16} />
+                    </button>
+                  )}
+                  <h2
+                    style={{
+                      color: "#f4f4f5",
+                      fontSize: "18px",
+                      fontWeight: 500,
+                      margin: 0,
+                      lineHeight: "28px",
+                      flex: 1,
+                    }}
+                  >
+                    {getHeaderText()}
+                  </h2>
+                </div>
+                {getSubheaderText() && (
                   <p
                     style={{
                       color: "rgba(255, 255, 255, 0.6)",
@@ -676,9 +798,12 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(
                       lineHeight: "1.5",
                       maxWidth: "90%",
                       fontWeight: 400,
+                      marginTop: "8px",
+                      marginBottom: 0,
+                      paddingLeft: stage !== "options" ? "36px" : "0",
                     }}
                   >
-                    {selectedText?.substring(0, 100)}...
+                    {getSubheaderText()}
                   </p>
                 )}
               </div>
@@ -842,21 +967,30 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(
                       style={{
                         borderTop: "1px solid rgba(255, 255, 255, 0.1)",
                         padding: "16px",
-                        background: "rgba(255, 255, 255, 0.03)",
                       }}
                     >
                       <div style={{ display: "flex", gap: "8px", position: "relative" }}>
                         <input
                           type="text"
                           value={quickChatInput}
-                          onChange={(e) => setQuickChatInput(e.target.value)}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            setQuickChatInput(e.target.value);
+                          }}
                           onKeyDown={(e) => {
                             e.stopPropagation();
+                            if (e.key === "Escape") {
+                              e.preventDefault();
+                              setQuickChatInput("");
+                              return;
+                            }
                             if (e.key === "Enter") {
                               e.preventDefault();
                               handleQuickChat();
                             }
                           }}
+                          onClick={(e) => e.stopPropagation()}
                           placeholder={
                             selectedText
                               ? "Ask about the selected text..."
@@ -1035,14 +1169,28 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(
                       ref={inputRef}
                       type="text"
                       value={chatMessage}
-                      onChange={(e) => setChatMessage(e.target.value)}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        setChatMessage(e.target.value);
+                      }}
                       onKeyDown={(e) => {
                         e.stopPropagation();
+                        if (e.key === "Escape") {
+                          e.preventDefault();
+                          setStage("options");
+                          setShowOptions(true);
+                          setChatMessage("");
+                          setPendingText("");
+                          setPendingOption(null);
+                          return;
+                        }
                         if (e.key === "Enter") {
                           e.preventDefault();
                           handleOptionSelect(currentOption);
                         }
                       }}
+                      onClick={(e) => e.stopPropagation()}
                       placeholder="Type or paste your text here..."
                       style={{
                         flex: 1,
@@ -1125,7 +1273,11 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(
                           ref={inputRef}
                           type="text"
                           value={chatMessage}
-                          onChange={(e) => setChatMessage(e.target.value)}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            setChatMessage(e.target.value);
+                          }}
                           onKeyDown={(e) => {
                             e.stopPropagation();
                             if (e.key === "Enter") {
@@ -1133,6 +1285,7 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(
                               handleChat();
                             }
                           }}
+                          onClick={(e) => e.stopPropagation()}
                           placeholder="Ask a follow-up question..."
                           style={{
                             flex: 1,
