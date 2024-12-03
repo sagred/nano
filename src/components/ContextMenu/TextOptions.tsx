@@ -24,6 +24,9 @@ import { useCustomInstructions } from "@/hooks/useCustomInstructions";
 import { AddInstructionForm } from "./AddInstructionForm";
 import { instructionsDb } from "@/services/storage/instructions";
 import { CustomInstruction } from "@/types/instructions";
+import { usePageContent } from '@/hooks/usePageContent';
+import type { PageContent } from '@/types/pageContent';
+import { getPageContent } from '@/utils/getPageContent';
 
 interface TextOptionsProps {
   selectedText?: string;
@@ -64,7 +67,16 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(
 
     const [quickChatInput, setQuickChatInput] = useState("");
 
+    const { getPageContent } = usePageContent();
+
     const allOptions = [
+      ...(selectedText ? [] : [{
+        id: "summarize-page",
+        icon: (
+          <FileText style={{ width: "14px", height: "14px", color: "#22c55e" }} />
+        ),
+        label: "Summarize This Page",
+      }]),
       {
         id: "improve",
         icon: (
@@ -203,7 +215,9 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(
 
     useEffect(() => {
       const handleKeyDown = (e: KeyboardEvent) => {
+        // Handle Escape key for all stages
         if (e.key === "Escape") {
+          e.preventDefault();
           if (stage === "add-instruction") {
             setStage("options");
             return;
@@ -211,6 +225,7 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(
           if (stage === "options") {
             onClose();
           } else {
+            // Reset to options stage from any other stage (response, input)
             setStage("options");
             setShowOptions(true);
             setShowResponse(false);
@@ -223,34 +238,34 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(
           return;
         }
 
-        if (!showOptions) return;
-
-        switch (e.key) {
-          case "ArrowDown":
-            e.preventDefault();
-            e.stopPropagation();
-            setFocusedOptionIndex((prev) =>
-              prev < allOptions.length - 1 ? prev + 1 : prev
-            );
-            break;
-          case "ArrowUp":
-            e.preventDefault();
-            e.stopPropagation();
-            setFocusedOptionIndex((prev) => (prev > 0 ? prev - 1 : prev));
-            break;
-          case "Enter":
-            e.preventDefault();
-            e.stopPropagation();
-            if (focusedOptionIndex >= 0) {
-              handleOptionSelect(allOptions[focusedOptionIndex].id);
-            }
-            break;
+        // Handle navigation keys only in options stage
+        if (stage === "options") {
+          switch (e.key) {
+            case "ArrowDown":
+              e.preventDefault();
+              setFocusedOptionIndex((prev) => 
+                prev < allOptions.length - 1 ? prev + 1 : prev
+              );
+              break;
+            case "ArrowUp":
+              e.preventDefault();
+              setFocusedOptionIndex((prev) => 
+                prev > 0 ? prev - 1 : prev
+              );
+              break;
+            case "Enter":
+              e.preventDefault();
+              if (focusedOptionIndex >= 0) {
+                handleOptionSelect(allOptions[focusedOptionIndex].id);
+              }
+              break;
+          }
         }
       };
 
-      document.addEventListener("keydown", handleKeyDown, true);
-      return () => document.removeEventListener("keydown", handleKeyDown, true);
-    }, [stage, showOptions, focusedOptionIndex, allOptions, onClose]);
+      window.addEventListener("keydown", handleKeyDown);
+      return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [stage, allOptions, focusedOptionIndex, onClose]);
 
     useEffect(() => {
       const container = responseContainerRef.current;
@@ -292,6 +307,11 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(
       option: string,
       messageIndex?: number
     ) => {
+      if (option === "summarize-page") {
+        await handlePageSummarization();
+        return;
+      }
+
       const selectedOption = allOptions.find((opt) => opt.id === option);
       if (!selectedOption) return;
 
@@ -426,6 +446,59 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(
       }
     };
 
+    const handlePageSummarization = async () => {
+      setCurrentOption("summarize-page");
+      setIsLoading(true);
+      setShowOptions(false);
+      setStage("response");
+
+      try {
+        // Get page content directly
+        const { content, title, url } = getPageContent();
+
+        console.log('Page content:', content);
+        
+        if (!content) {
+          throw new Error("No content found on page");
+        }
+
+        console.log('Content length:', content.length);
+
+        const stream = await modifyText("summarize-page", content);
+        
+        setMessages([
+          { 
+            role: "user", 
+            content: `Summarizing: ${title || 'Current page'}\nURL: ${url}`
+          },
+          { role: "assistant", content: "" },
+        ]);
+
+        let fullResponse = "";
+        for await (const chunk of stream) {
+          fullResponse += chunk;
+          setMessages((prev) =>
+            prev.map((msg, idx) =>
+              idx === prev.length - 1 ? { ...msg, content: fullResponse } : msg
+            )
+          );
+        }
+
+        setShowChat(true);
+      } catch (error) {
+        console.error("Summarization error:", error);
+        setMessages([
+          { role: "user", content: "Failed to summarize the page" },
+          {
+            role: "assistant",
+            content: `Sorry, I couldn't summarize this page. Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          },
+        ]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
     const MessageBlock = ({
       isUser,
       content,
@@ -442,7 +515,7 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(
       return (
         <div
           style={{
-            background: isUser ? "transparent" : "rgba(39, 39, 42, 0.3)",
+            background: isUser ? "transparent" : "rgba(255, 255, 255, 0.05)",
             borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
             paddingLeft: "32px",
             paddingRight: "32px",
@@ -498,10 +571,10 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(
       top: "16px",
       right: "16px",
       padding: "8px",
-      background: "rgba(39, 39, 42, 0.5)",
+      background: "rgba(255, 255, 255, 0.05)",
       border: "1px solid rgba(255, 255, 255, 0.1)",
       borderRadius: "6px",
-      color: "#71717a",
+      color: "#f4f4f5",
       cursor: "pointer",
       display: "flex",
       alignItems: "center",
@@ -513,6 +586,13 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(
       height: "32px",
     };
 
+    useEffect(() => {
+      return () => {
+        // Cleanup any pending message listeners
+        chrome.runtime.onMessage.removeListener(() => {});
+      };
+    }, []);
+
     return (
       <div className="modal-container">
         <div className="modal-backdrop" onClick={onClose} />
@@ -521,7 +601,7 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(
           ref={ref}
           className="modal-content"
           style={{
-            background: "#18181B",
+            background: "#000000",
             borderRadius: "12px",
             display: "flex",
             flexDirection: "column",
@@ -532,14 +612,16 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(
             onClick={onClose}
             style={closeButtonStyles}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = "rgba(39, 39, 42, 0.8)";
-              e.currentTarget.style.color = "#f4f4f5";
+              e.currentTarget.style.background = "rgba(239, 68, 68, 0.2)";
+              e.currentTarget.style.color = "#ef4444";
               e.currentTarget.style.transform = "scale(1.05)";
+              e.currentTarget.style.borderColor = "#ef4444";
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = "rgba(39, 39, 42, 0.5)";
-              e.currentTarget.style.color = "#71717a";
+              e.currentTarget.style.background = "rgba(255, 255, 255, 0.05)";
+              e.currentTarget.style.color = "#f4f4f5";
               e.currentTarget.style.transform = "scale(1)";
+              e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.1)";
             }}
           >
             <X
@@ -567,10 +649,10 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(
                 style={{
                   paddingRight: "24px",
                   paddingLeft: "24px",
-                  paddingTop: "8px",
-                  paddingBottom: "12px",
+                  paddingTop: "16px",
+                  paddingBottom: "16px",
                   borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
-                  background: "#18181B",
+                  background: "rgba(255, 255, 255, 0.03)",
                   position: "relative",
                 }}
               >
@@ -579,7 +661,7 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(
                     color: "#f4f4f5",
                     fontSize: "18px",
                     fontWeight: 500,
-                    marginBottom: "4px",
+                    marginBottom: selectedText ? "8px" : "0",
                   }}
                 >
                   {selectedText
@@ -589,10 +671,11 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(
                 {selectedText && (
                   <p
                     style={{
-                      color: "#71717a",
+                      color: "rgba(255, 255, 255, 0.6)",
                       fontSize: "14px",
                       lineHeight: "1.5",
                       maxWidth: "90%",
+                      fontWeight: 400,
                     }}
                   >
                     {selectedText?.substring(0, 100)}...
@@ -620,98 +703,126 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(
                         padding: "12px",
                       }}
                     >
-                      {allOptions.map((option) => (
+                      {allOptions.map((option, index) => (
                         <button
                           key={option.id}
                           onClick={() => handleOptionSelect(option.id)}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.background = "#27272a";
-                            e.currentTarget.style.color = "#f4f4f5";
-                            setFocusedOptionIndex(
-                              allOptions.findIndex(
-                                (opt) => opt.id === option.id
-                              )
-                            );
+                            setFocusedOptionIndex(index);
+                            const button = e.currentTarget;
+                            button.style.background = "rgba(255, 255, 255, 0.1)";
+                            button.style.transform = "translateX(6px)";
+                            button.style.boxShadow = "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)";
+                            const icon = button.querySelector("svg");
+                            if (icon instanceof SVGElement) {
+                              icon.style.color = "#4ade80";
+                              icon.style.transform = "scale(1.1) rotate(3deg)";
+                            }
+                            const label = button.querySelector(".option-label");
+                            if (label instanceof HTMLElement) {
+                              label.style.color = "#ffffff";
+                              label.style.fontWeight = "500";
+                            }
                           }}
                           onMouseLeave={(e) => {
-                            e.currentTarget.style.background = "transparent";
-                            e.currentTarget.style.color = "#d4d4d8";
+                            const button = e.currentTarget;
+                            button.style.background = "transparent";
+                            button.style.transform = "translateX(0)";
+                            button.style.boxShadow = "none";
+                            const icon = button.querySelector("svg");
+                            if (icon instanceof SVGElement) {
+                              icon.style.color = "#22c55e";
+                              icon.style.transform = "scale(1) rotate(0deg)";
+                            }
+                            const label = button.querySelector(".option-label");
+                            if (label instanceof HTMLElement) {
+                              label.style.color = "#d4d4d8";
+                              label.style.fontWeight = "400";
+                            }
                           }}
                           style={{
                             width: "100%",
-                            padding: "12px",
-                            paddingLeft: "24px",
-                            paddingRight: "24px",
+                            padding: "12px 24px",
                             display: "flex",
                             alignItems: "center",
-                            gap: "8px",
-                            background:
-                              focusedOptionIndex ===
-                              allOptions.findIndex(
-                                (opt) => opt.id === option.id
-                              )
-                                ? "#27272a"
-                                : "transparent",
+                            gap: "12px",
+                            background: focusedOptionIndex === index ? "rgba(255, 255, 255, 0.1)" : "transparent",
                             border: "none",
-                            color:
-                              focusedOptionIndex ===
-                              allOptions.findIndex(
-                                (opt) => opt.id === option.id
-                              )
-                                ? "#f4f4f5"
-                                : "#d4d4d8",
+                            borderRadius: "8px",
+                            color: focusedOptionIndex === index ? "#ffffff" : "#d4d4d8",
                             cursor: "pointer",
                             fontSize: "14px",
                             textAlign: "left",
-                            borderRadius: "6px",
                             outline: "none",
+                            transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                            position: "relative",
+                            transform: focusedOptionIndex === index ? "translateX(6px)" : "translateX(0)",
+                            boxShadow: focusedOptionIndex === index ? 
+                              "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)" : "none",
                           }}
                         >
-                          {option.icon}
-                          {option.label}
+                          <div style={{ 
+                            display: "flex", 
+                            alignItems: "center",
+                            transition: "all 0.2s ease"
+                          }}>
+                            {option.icon}
+                          </div>
+                          <span 
+                            className="option-label"
+                            style={{ 
+                              transition: "all 0.2s ease",
+                              flex: 1,
+                              color: focusedOptionIndex === index ? "#f4f4f5" : "#d4d4d8",
+                            }}
+                          >
+                            {option.label}
+                          </span>
                         </button>
                       ))}
                       <button
                         onClick={() => setStage("add-instruction")}
                         style={{
                           width: "100%",
-                          padding: "12px",
-                          paddingLeft: "24px",
-                          paddingRight: "24px",
+                          padding: "12px 24px",
                           display: "flex",
                           alignItems: "center",
-                          gap: "8px",
+                          gap: "12px",
                           background: "transparent",
                           border: "none",
-                          color: "#a1a1aa",
+                          borderRadius: "6px",
+                          color: "#71717a",
                           cursor: "pointer",
                           fontSize: "13px",
                           textAlign: "left",
                           outline: "none",
-                          position: "relative",
+                          transition: "all 0.2s ease",
+                          marginTop: "8px",
                         }}
                         onMouseEnter={(e) => {
-                          const span = e.currentTarget.querySelector("span");
-                          if (span) {
-                            span.style.textDecoration = "underline";
-                            span.style.textUnderlineOffset = "4px";
-                            span.style.textDecorationThickness = "1px";
-                            span.style.color = "#d4d4d8";
-                          }
+                          e.currentTarget.style.background = "rgba(255, 255, 255, 0.05)";
+                          e.currentTarget.style.transform = "translateX(4px)";
                           const icon = e.currentTarget.querySelector("svg");
                           if (icon) {
-                            icon.style.color = "#d4d4d8";
+                            icon.style.color = "#f4f4f5";
+                            icon.style.transform = "scale(1.1)";
+                          }
+                          const label = e.currentTarget.querySelector("span");
+                          if (label) {
+                            label.style.color = "#f4f4f5";
                           }
                         }}
                         onMouseLeave={(e) => {
-                          const span = e.currentTarget.querySelector("span");
-                          if (span) {
-                            span.style.textDecoration = "none";
-                            span.style.color = "#a1a1aa";
-                          }
+                          e.currentTarget.style.background = "transparent";
+                          e.currentTarget.style.transform = "translateX(0)";
                           const icon = e.currentTarget.querySelector("svg");
                           if (icon) {
-                            icon.style.color = "#a1a1aa";
+                            icon.style.color = "#71717a";
+                            icon.style.transform = "scale(1)";
+                          }
+                          const label = e.currentTarget.querySelector("span");
+                          if (label) {
+                            label.style.color = "#71717a";
                           }
                         }}
                       >
@@ -719,8 +830,7 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(
                           style={{
                             width: "14px",
                             height: "14px",
-                            color: "#a1a1aa",
-                            transition: "color 0.2s ease",
+                            transition: "all 0.2s ease",
                           }}
                         />
                         <span style={{ transition: "all 0.2s ease" }}>
@@ -732,10 +842,10 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(
                       style={{
                         borderTop: "1px solid rgba(255, 255, 255, 0.1)",
                         padding: "16px",
-                        background: "#18181b",
+                        background: "rgba(255, 255, 255, 0.03)",
                       }}
                     >
-                      <div style={{ display: "flex", gap: "8px" }}>
+                      <div style={{ display: "flex", gap: "8px", position: "relative" }}>
                         <input
                           type="text"
                           value={quickChatInput}
@@ -753,35 +863,40 @@ export const TextOptions = React.forwardRef<HTMLDivElement, TextOptionsProps>(
                               : "Ask anything..."
                           }
                           style={{
-                            flex: 1,
-                            padding: "8px 12px",
-                            background: "var(--primary)",
+                            width: "100%",
+                            padding: "12px",
+                            background: "#000000",
                             border: "none",
                             borderRadius: "6px",
-                            color: "var(--primary-foreground)",
+                            color: "#f4f4f5",
                             fontSize: "14px",
                             outline: "none",
                           }}
                         />
-                        <button
-                          onClick={handleQuickChat}
-                          disabled={isLoading || !quickChatInput.trim()}
-                          style={{
-                            padding: "8px",
-                            background: "var(--primary)",
-                            border: "none",
-                            borderRadius: "6px",
-                            color: "var(--primary-foreground)",
-                            cursor: "pointer",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            opacity:
-                              isLoading || !quickChatInput.trim() ? 0.5 : 1,
-                          }}
-                        >
-                          <Send style={{ width: "16px", height: "16px" }} />
-                        </button>
+                        {quickChatInput.trim() && (
+                          <button
+                            onClick={handleQuickChat}
+                            disabled={isLoading}
+                            style={{
+                              position: "absolute",
+                              right: "12px",
+                              top: "50%",
+                              transform: "translateY(-50%)",
+                              padding: "4px",
+                              background: "transparent",
+                              border: "none",
+                              borderRadius: "4px",
+                              color: "#f4f4f5",
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              opacity: isLoading ? 0.5 : 1,
+                            }}
+                          >
+                            <Send style={{ width: "14px", height: "14px" }} />
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
