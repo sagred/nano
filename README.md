@@ -21,6 +21,28 @@
   <img src="assets/hero.png" alt="NanoScope Hero" width="100%" style="border-radius: 8px; margin: 20px 0;"/>
 </div>
 
+## Problem Statement
+
+In today's digital landscape, users face significant friction when trying to modify or improve text they find online. The current workflow is fragmented and time-consuming:
+
+### Core Problems
+
+#### 🎯 Text Modification Challenges
+- **Context Switching**: Users waste time copying text between websites and various writing tools
+- **Workflow Interruption**: Constant switching between applications breaks focus and productivity
+- **Tool Fragmentation**: Need for multiple paid subscriptions to different writing services
+- **Manual Processing**: Simple text improvements require disproportionate effort
+- **Loss of Context**: Moving text between platforms often loses original context
+- **Delayed Assistance**: No immediate access to writing improvements
+- **Limited Accessibility**: Writing tools aren't readily available where users need them
+
+#### 🔍 Content Management Issues
+- **Disorganized Information**: Basic bookmark and history systems lack intelligent organization
+- **Limited Searchability**: Difficulty finding and accessing previously saved content
+- **Scattered Resources**: Important information spread across multiple platforms and tools
+
+NanoScope addresses these challenges by bringing powerful text manipulation and content management capabilities directly into your browser, eliminating the need for context switching and multiple tools.
+
 ## Features
 
 - 🔍 **Text Manipulation**: Improve, simplify, or modify selected text
