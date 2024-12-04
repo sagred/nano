@@ -1,7 +1,20 @@
-# NanoScope
+<div align="center">
+  <img src="assets/icons/icon.png" alt="NanoScope Logo" width="128" height="128"/>
 
-> Supercharge your productivity without compromising on speed and privacy
+  # NanoScope
 
+  > Supercharge your productivity without compromising on speed and privacy
+
+  A powerful Chrome extension that enhances your browsing experience with AI-powered text manipulation, page analysis, and intelligent search capabilities.
+
+  <p align="center">
+    <img src="https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React"/>
+    <img src="https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript"/>
+    <img src="https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white" alt="Tailwind CSS"/>
+    <img src="https://img.shields.io/badge/Chrome_Extension-4285F4?style=for-the-badge&logo=google-chrome&logoColor=white" alt="Chrome Extension"/>
+    <img src="https://img.shields.io/badge/Google_Gemini-8E75B2?style=for-the-badge&logo=google&logoColor=white" alt="Google Gemini"/>
+  </p>
+</div>
 ## Features
 
 - 🔍 **Text Manipulation**: Improve, simplify, or modify selected text
