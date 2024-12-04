@@ -64,7 +64,7 @@ NanoScope addresses these challenges by bringing powerful text manipulation and 
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/yourusername/nanoscope.git
+git clone https://github.com/sagred/nanoscope.git
 cd nanoscope
 ```
 
