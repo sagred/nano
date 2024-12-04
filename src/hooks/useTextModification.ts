@@ -4,7 +4,7 @@ import { aiService } from '@/services/ai';
 export const useTextModification = () => {
   const modifyText = useCallback(async (option: string, text: string) => {
     // Base personality and context for Nano
-    const baseContext = `You are Nano, a concise and efficient AI assistant for NanoSearch. 
+    const baseContext = `You are Nano, a concise and efficient AI assistant for NanoScope. 
 Your responses should be:
 - Clear and direct
 - Focused on the specific task

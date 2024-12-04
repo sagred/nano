@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Nano Search",
+  "name": "NanoScope",
   "version": "1.0.0",
   "description": "Local AI-powered search through your browsing history and bookmarks",
   "permissions": [
@@ -48,7 +48,19 @@
       }
   ],
   "action": {
-      "default_title": "Nano Search - Open Side Panel",
-      "default_panel": "sidepanel.html" 
+      "default_title": "NanoScope - Open Side Panel",
+      "default_panel": "sidepanel.html",
+      "default_icon": {
+          "16": "assets/icons/icon-16.png",
+          "32": "assets/icons/icon-32.png",
+          "48": "assets/icons/icon.png",
+          "128": "assets/icons/icon.png"
+      }
+  },
+  "icons": {
+      "16": "assets/icons/icon-16.png",
+      "32": "assets/icons/icon-32.png",
+      "48": "assets/icons/icon.png",
+      "128": "assets/icons/icon.png"
   }
 }

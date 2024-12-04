@@ -23,7 +23,13 @@ export default defineConfig({
         sidepanel: resolve(__dirname, 'src/sidepanel.html')
       },
       output: {
-        entryFileNames: '[name].js'
+        entryFileNames: '[name].js',
+        assetFileNames: (assetInfo) => {
+          if (assetInfo.name.endsWith('.png')) {
+            return 'assets/icons/[name][extname]';
+          }
+          return 'assets/[name]-[hash][extname]';
+        },
       }
     }
   },

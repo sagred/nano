@@ -77,7 +77,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 function getPromptForOption(option: string, text: string): string {
   // Base personality and context for Nano
-  const baseContext = `You are Nano, a concise and efficient AI assistant for NanoSearch. 
+  const baseContext = `You are Nano, a concise and efficient AI assistant for NanoScope. 
 Your responses should be:
 - Clear and direct
 - Focused on the specific task

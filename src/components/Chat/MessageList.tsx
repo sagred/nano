@@ -41,12 +41,17 @@ export const MessageList: React.FC<MessageListProps> = ({ messages, isLoading })
           <div
             key={`${message.timestamp}-${index}`}
             className={`message-block ${message.role}`}
+            style={{
+              background: message.role === 'assistant' ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+              padding: '16px 32px',
+            }}
           >
-            <div className="message-content">
+            <div className="message-content text-[#f4f4f5]">
               <ReactMarkdown>{message.content}</ReactMarkdown>
               {isLoading && index === messages.length - 1 && 
                message.role === 'assistant' && (
-                <span className="inline-flex gap-1 mt-2 text-primary/70">
+                <span className="inline-flex gap-1 mt-2 text-[#22c55e]">
                   <span className="animate-pulse">●</span>
                   <span className="animate-pulse delay-100">●</span>
                   <span className="animate-pulse delay-200">●</span>
@@ -54,15 +59,15 @@ export const MessageList: React.FC<MessageListProps> = ({ messages, isLoading })
               )}
             </div>
             {message.role === 'assistant' && !isLoading && (
-              <div className="action-buttons">
-                <button className="action-button">
-                  <RefreshCw className="h-4 w-4" />
+              <div className="action-buttons mt-3 flex gap-2">
+                <button className="action-button hover:bg-[rgba(255,255,255,0.1)] p-2 rounded-md transition-colors">
+                  <RefreshCw className="h-4 w-4 text-[#22c55e]" />
                 </button>
                 <button 
-                  className="action-button"
+                  className="action-button hover:bg-[rgba(255,255,255,0.1)] p-2 rounded-md transition-colors"
                   onClick={() => navigator.clipboard.writeText(message.content)}
                 >
-                  <Copy className="h-4 w-4" />
+                  <Copy className="h-4 w-4 text-[#22c55e]" />
                 </button>
               </div>
             )}
@@ -75,10 +80,10 @@ export const MessageList: React.FC<MessageListProps> = ({ messages, isLoading })
           variant="secondary"
           size="icon"
           className="fixed bottom-24 right-6 rounded-full shadow-lg 
-                   bg-background/80 backdrop-blur-sm border border-border/20"
+                   bg-black/80 backdrop-blur-sm border border-[#27272a]/20"
           onClick={scrollToBottom}
         >
-          <ChevronDown className="h-4 w-4" />
+          <ChevronDown className="h-4 w-4 text-[#f4f4f5]" />
         </Button>
       )}
     </>

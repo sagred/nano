@@ -32,8 +32,8 @@ export const Chat: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="p-4 border-b border-border">
+    <div className="flex flex-col h-full bg-black">
+      <div className="p-4 border-b border-[#27272a] bg-black">
         <SearchBar 
           value={searchQuery} 
           onChange={(value) => {
@@ -43,14 +43,14 @@ export const Chat: React.FC = () => {
         />
       </div>
       <div className="flex-1 overflow-hidden">
-        <div className="h-full overflow-y-auto relative" id="chat-scroll-container">
+        <div className="h-full overflow-y-auto relative bg-black" id="chat-scroll-container">
           <div className="max-w-3xl mx-auto p-4 relative">
             {isProcessing && (
               <Progress value={progress} className="w-full mb-4" />
             )}
             {searchLoading ? (
               <div className="flex items-center justify-center p-8">
-                <Spinner className="h-6 w-6" />
+                <Spinner className="h-6 w-6 text-[#22c55e]" />
               </div>
             ) : searchQuery && results.length > 0 ? (
               <div className="space-y-4">
@@ -63,19 +63,19 @@ export const Chat: React.FC = () => {
                 ))}
               </div>
             ) : searchQuery ? (
-              <EmptyState message="No results found" />
+              <EmptyState message="No results found" className="text-[#71717a]" />
             ) : (
               <div className="space-y-6">
                 <MessageList messages={messages} isLoading={isLoading} />
                 {messages.length === 1 && (
-                  <div className="bg-card rounded-lg border border-border">
+                  <div className="bg-black rounded-lg border border-[#27272a]">
                     <BookmarkList bookmarks={bookmarks} onSelect={analyzeBookmark} />
                   </div>
                 )}
               </div>
             )}
             {error && (
-              <Alert variant="destructive" className="mt-4">
+              <Alert variant="destructive" className="mt-4 bg-black border-red-500/50">
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>Error</AlertTitle>
                 <AlertDescription>{error}</AlertDescription>
