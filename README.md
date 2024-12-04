@@ -1,50 +1,110 @@
-# React + TypeScript + Vite
+# NanoScope
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+> Supercharge your productivity without compromising on speed and privacy
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- 🔍 **Text Manipulation**: Improve, simplify, or modify selected text
+- 📝 **Page Summarization**: Get concise summaries of entire web pages
+- 💬 **Interactive Chat**: Ask follow-up questions and get contextual responses
+- 🔖 **Smart Bookmarks**: Search and analyze your bookmarked content
+- 🎯 **Custom Instructions**: Create and save your own text manipulation templates
 
-## Expanding the ESLint configuration
+## Installation & Development
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+### Prerequisites
 
-- Configure the top-level `parserOptions` property like this:
+- Node.js (v16 or higher)
+- npm or yarn
+- Chrome browser
 
-```js
-export default tseslint.config({
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+### Setup
+
+1. Clone the repository:
+
+```bash
+git clone https://github.com/yourusername/nanoscope.git
+cd nanoscope
 ```
 
-- Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
-- Optionally add `...tseslint.configs.stylisticTypeChecked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
+2. Install dependencies:
 
-```js
-// eslint.config.js
-import react from 'eslint-plugin-react'
-
-export default tseslint.config({
-  // Set the react version
-  settings: { react: { version: '18.3' } },
-  plugins: {
-    // Add the react plugin
-    react,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended rules
-    ...react.configs.recommended.rules,
-    ...react.configs['jsx-runtime'].rules,
-  },
-})
+```bash
+npm install
+# or
+yarn install
 ```
+
+3. Build the extension:
+
+```bash
+npm run build
+# or
+yarn build
+```
+
+### Load the Extension in Chrome
+
+1. Open Chrome and navigate to `chrome://extensions/`
+2. Enable "Developer mode" in the top right corner
+3. Click "Load unpacked"
+4. Select the `dist` folder from your project directory
+
+### Development
+
+Run the development server:
+
+```bash
+npm run dev
+# or
+yarn dev
+```
+
+The extension will auto-reload as you make changes.
+
+## Usage
+
+- Press `Ctrl+M` (Windows) or `Cmd+M` (Mac) to open text options
+- Click the extension icon to open the side panel
+- Select text and right-click to access context menu options
+
+## Project Structure
+
+```
+nanoscope/
+├── src/
+│   ├── background/     # Chrome extension background scripts
+│   ├── components/     # React components
+│   ├── content-scripts/# Chrome extension content scripts
+│   ├── hooks/         # Custom React hooks
+│   ├── services/      # Core services and utilities
+│   └── styles/        # Global styles and themes
+├── public/            # Static assets
+└── dist/             # Build output
+```
+
+## Tech Stack
+
+- React + TypeScript
+- Vite
+- Tailwind CSS
+- Chrome Extension APIs
+- AI Integration
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## License
+
+[MIT License](LICENSE)
+
+## Acknowledgments
+
+- Built with [Vite](https://vitejs.dev/)
+- UI components from [shadcn/ui](https://ui.shadcn.com/)
+- Icons from [Lucide](https://lucide.dev/)
