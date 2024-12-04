@@ -5,7 +5,9 @@
 
   > Supercharge your productivity without compromising on speed and privacy
 
-  A powerful Chrome extension that enhances your browsing experience with AI-powered text manipulation, page analysis, and intelligent search capabilities.
+
+  Rewrite, enhance, perfect text instantly while you browse and rediscover your bookmarks - your AI assistant right on any tab in Chrome
+
 
   <p align="center">
     <img src="https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React"/>
