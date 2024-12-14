@@ -21,6 +21,10 @@
   <img src="assets/hero.png" alt="NanoScope Hero" width="100%" style="border-radius: 8px; margin: 20px 0;"/>
 </div>
 
+## Project Links
+- 🔗 **GitHub Repository**: [github.com/sagred/nano](https://github.com/sagred/nano)
+- 📺 **Demo Video**: [Watch on YouTube](your_video_link)
+
 ## Problem Statement
 
 In today's digital landscape, users face significant friction when trying to modify or improve text they find online. The current workflow is fragmented and time-consuming:

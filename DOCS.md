@@ -1,3 +1,7 @@
+## Project Links
+- 🔗 **GitHub Repository**: [github.com/sagred/nano](https://github.com/sagred/nano)
+- 📺 **Demo Video**: [Watch on YouTube](your_video_link)
+
 <div align="center">
   <img src="assets/icons/icon.png" alt="NanoScope Logo" width="128" height="128"/>
 
