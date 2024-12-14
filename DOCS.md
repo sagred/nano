@@ -2,6 +2,10 @@
 - 🔗 **GitHub Repository**: [github.com/sagred/nano](https://github.com/sagred/nano)
 - 📺 **Demo Video**: [Watch on YouTube](https://youtu.be/I5sKNz5oVhI)
 
+## Team Members:
+- Sagar Reddy Sabbanahalli Narendra Reddy - 002793706
+- Arundathi Neelam - 002771052
+
 <div align="center">
   <img src="assets/icons/icon.png" alt="NanoScope Logo" width="128" height="128"/>
 
