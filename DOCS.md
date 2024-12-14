@@ -192,17 +192,8 @@ sequenceDiagram
 ```
 
 ### 3.4 Model Performance Metrics
-```typescript
-interface ModelMetrics {
-  accuracy: 0.89;
-  precision: 0.87;
-  recall: 0.86;
-  f1_score: 0.865;
-  confusion_matrix: number[][];
-  training_time: '45 minutes';
-  epochs: 10;
-}
-```
+![image](https://github.com/user-attachments/assets/5f01f445-b94f-4523-90ca-9be47f95293b)
+
 
 ## 4. Bookmark Management System
 
@@ -562,27 +553,8 @@ interface MemoryMetrics {
 ## 6.2 Model Evaluation Results
 
 ### 6.2.1 Classification Model Performance
-```assistant_snippet_YhKL8M5VDt.txt
-1|{
-2|  "metrics": {
-3|    "accuracy": {
-4|      "overall": 0.89,
-5|      "byCategory": {
-6|        "Technology": 0.92,
-7|        "Travel": 0.88,
-8|        "Shopping": 0.87,
-9|        "Entertainment": 0.90,
-10|        "Education": 0.91,
-11|        "Business": 0.89,
-12|        "Others": 0.86
-13|      }
-14|    },
-15|    "f1Score": 0.88,
-16|    "precision": 0.87,
-17|    "recall": 0.89
-18|  }
-19|}
-```
+![image](https://github.com/user-attachments/assets/835be107-d46a-489d-9101-0514df947fde)
+
 
 ### 6.2.2 RAG System Evaluation
 ```assistant_snippet_p4K2VcNQRB.txt
