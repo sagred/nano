@@ -126,11 +126,40 @@ nanoscope/
 
 ## Tech Stack
 
-- React + TypeScript
-- Vite
-- Tailwind CSS
-- Chrome Extension APIs
-- AI Integration
+- **Frontend**
+  - React + TypeScript
+  - TailwindCSS
+  - Chrome Extension APIs (Manifest V3)
+
+- **AI & ML**
+  - TensorFlow.js
+  - Universal Sentence Encoder
+  - Cohere (Fine-tuning)
+
+- **Storage**
+  - IndexedDB (via Dexie.js)
+  - Chrome Storage API
+
+- **Build Tools**
+  - Vite
+  - SWC
+  - ESLint
+
+- **UI Components**
+  - Radix UI
+  - Lucide Icons
+
+- **Testing**
+  - Jest
+  - React Testing Library
+
+<p align="center">
+  <img src="https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React"/>
+  <img src="https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript"/>
+  <img src="https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white" alt="Tailwind CSS"/>
+  <img src="https://img.shields.io/badge/Chrome_Extension-4285F4?style=for-the-badge&logo=google-chrome&logoColor=white" alt="Chrome Extension"/>
+  <img src="https://img.shields.io/badge/TensorFlow-FF6F00?style=for-the-badge&logo=tensorflow&logoColor=white" alt="TensorFlow"/>
+</p>
 
 ## Contributing
 
