@@ -23,7 +23,7 @@
 
 ## Project Links
 - 🔗 **GitHub Repository**: [github.com/sagred/nano](https://github.com/sagred/nano)
-- 📺 **Demo Video**: [Watch on YouTube](your_video_link)
+- 📺 **Demo Video**: [Watch on YouTube](https://youtu.be/I5sKNz5oVhI)
 
 ## Problem Statement
 
